@@ -1,0 +1,27 @@
+# Environments & Secrets
+.env
+.env.local
+*.log
+backend_logs.txt
+
+# Node.js
+node_modules/
+dist/
+.eslintcache
+
+# Java / Maven
+target/
+*.class
+.mvn/
+
+# Python
+venv/
+venv311/
+__pycache__/
+*.pyc
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.ntuser*

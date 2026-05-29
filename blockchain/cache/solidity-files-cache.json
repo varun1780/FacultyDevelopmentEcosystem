@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\varun\\OneDrive\\Documents\\fdp\\blockchain\\contracts\\FDPCertificateRegistry.sol": {
+      "lastModificationDate": 1778211420832,
+      "contentHash": "e8630ea7a520983fb6ace1e40ca10833",
+      "sourceName": "contracts/FDPCertificateRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "FDPCertificateRegistry"
+      ]
+    }
+  }
+}

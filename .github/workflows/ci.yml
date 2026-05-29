@@ -1,0 +1,59 @@
+name: AI FDP Hub CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Backend
+        run: cd backend && mvn clean package -DskipTests
+      - name: Run Tests
+        run: cd backend && mvn test
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: cd frontend && npm install
+      - name: Build Frontend
+        run: cd frontend && npm run build
+
+  ai-service-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Dependencies
+        run: cd ai-service && pip install -r requirements.txt
+      - name: Health Check
+        run: cd ai-service && python -c "from main import app; print('AI Service OK')"
+
+  blockchain-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: cd blockchain && npm install
+      - name: Compile Contracts
+        run: cd blockchain && npx hardhat compile
+      - name: Run Tests
+        run: cd blockchain && npx hardhat test
