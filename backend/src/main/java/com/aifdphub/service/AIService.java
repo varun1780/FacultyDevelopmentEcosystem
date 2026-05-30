@@ -305,41 +305,78 @@ public class AIService {
         java.util.List<Map<String, Object>> questions = new java.util.ArrayList<>();
         String[][] questionBank = {
                 {"What is the primary objective of " + topic + "?",
-                        "To enhance teaching methodologies", "To increase enrollment",
-                        "To reduce costs", "To replace faculty",
-                        "To enhance teaching methodologies"},
+                        "To enhance teaching methodologies and learning outcomes", "To increase enrollment numbers",
+                        "To reduce institutional costs", "To replace faculty with automation",
+                        "To enhance teaching methodologies and learning outcomes",
+                        "The primary goal of any FDP is to enhance the quality of teaching and improve measurable learning outcomes for students."},
                 {"Which approach is most effective for implementing " + topic + "?",
-                        "Phased implementation with feedback", "Immediate full deployment",
-                        "Top-down mandate", "No implementation needed",
-                        "Phased implementation with feedback"},
+                        "Phased implementation with iterative feedback", "Immediate full-scale deployment across all departments",
+                        "Top-down administrative mandate without training", "Postponing implementation indefinitely",
+                        "Phased implementation with iterative feedback",
+                        "Phased rollouts allow institutions to gather feedback, fix issues, and scale gradually, minimizing risk."},
                 {"What is a key benefit of " + topic + " in higher education?",
-                        "Improved learning outcomes", "Reduced faculty workload only",
-                        "Lower student fees", "Fewer courses needed",
-                        "Improved learning outcomes"},
+                        "Improved student learning outcomes and engagement", "Reduced faculty workload without other benefits",
+                        "Lower student tuition fees", "Fewer courses in the curriculum",
+                        "Improved student learning outcomes and engagement",
+                        "Research consistently shows that structured faculty development improves both teaching quality and student engagement metrics."},
                 {"How should " + topic + " be assessed in an FDP?",
-                        "Through practical demonstrations and portfolios", "Only written exams",
-                        "Student surveys only", "No assessment needed",
-                        "Through practical demonstrations and portfolios"},
+                        "Through practical demonstrations, portfolios, and peer review", "Only through written examinations",
+                        "Student satisfaction surveys only", "No formal assessment is needed",
+                        "Through practical demonstrations, portfolios, and peer review",
+                        "Authentic assessment through portfolios and practical demonstrations measures real competency rather than rote memorization."},
                 {"What is the role of technology in " + topic + "?",
-                        "Enabler for enhanced learning experiences", "Complete replacement for teaching",
-                        "Optional add-on with no impact", "Only for administrative tasks",
-                        "Enabler for enhanced learning experiences"}
+                        "An enabler for enhanced and scalable learning experiences", "A complete replacement for traditional teaching methods",
+                        "An optional add-on with negligible impact", "Only useful for administrative record-keeping",
+                        "An enabler for enhanced and scalable learning experiences",
+                        "Technology serves as an enabler that amplifies effective teaching practices rather than replacing the human element of education."},
+                {"Which pedagogical framework best aligns with " + topic + "?",
+                        "Outcome-Based Education (OBE) with constructivist principles", "Rote memorization and lecture-only delivery",
+                        "Unstructured self-study without guidance", "Assessment-free experiential learning only",
+                        "Outcome-Based Education (OBE) with constructivist principles",
+                        "OBE combined with constructivist learning theory ensures students build knowledge through structured, measurable experiences."},
+                {"What is the recommended strategy for sustaining " + topic + " outcomes post-FDP?",
+                        "Continuous mentoring, peer learning communities, and follow-up workshops", "One-time certification with no follow-up",
+                        "Mandatory re-examination every semester", "Replacing all existing course materials immediately",
+                        "Continuous mentoring, peer learning communities, and follow-up workshops",
+                        "Sustainability requires ongoing support structures like mentoring circles and periodic refresher sessions."},
+                {"How does " + topic + " align with India's National Education Policy (NEP) 2020?",
+                        "It supports multidisciplinary learning, skill development, and continuous faculty improvement", "NEP 2020 does not address faculty development at all",
+                        "It only applies to K-12 education, not higher education", "It mandates replacing all faculty with AI systems",
+                        "It supports multidisciplinary learning, skill development, and continuous faculty improvement",
+                        "NEP 2020 explicitly emphasizes continuous professional development for faculty and multidisciplinary, skill-based education."},
+                {"What is the biggest challenge when scaling " + topic + " across an institution?",
+                        "Resistance to change and lack of institutional support infrastructure", "Excessive student enthusiasm for new methods",
+                        "Too many volunteers wanting to participate", "The low cost of implementation",
+                        "Resistance to change and lack of institutional support infrastructure",
+                        "Change management is the primary barrier — faculty resistance and insufficient administrative support can derail even well-designed programs."},
+                {"Which metric best indicates the success of a " + topic + " initiative?",
+                        "Measurable improvement in student learning outcomes and faculty satisfaction", "Number of certificates issued to participants",
+                        "Total hours spent in training sessions", "Amount of budget allocated to the program",
+                        "Measurable improvement in student learning outcomes and faculty satisfaction",
+                        "True success is measured by tangible improvements in how students learn and how confident faculty feel in applying new methods."}
         };
 
         java.util.Random rand = new java.util.Random();
-        for (int i = 0; i < Math.min(count, questionBank.length); i++) {
+        int qCount = Math.min(count, questionBank.length);
+        // Shuffle indices to get variety
+        java.util.List<Integer> indices = new java.util.ArrayList<>();
+        for (int i = 0; i < questionBank.length; i++) indices.add(i);
+        java.util.Collections.shuffle(indices, rand);
+
+        for (int i = 0; i < qCount; i++) {
+            int idx = indices.get(i);
             Map<String, Object> q = new HashMap<>();
             q.put("id", i + 1);
-            q.put("question", questionBank[i][0]);
-            
-            java.util.List<String> optTexts = new java.util.ArrayList<>(java.util.List.of(questionBank[i][1], questionBank[i][2], questionBank[i][3], questionBank[i][4]));
+            q.put("question", questionBank[idx][0]);
+
+            java.util.List<String> optTexts = new java.util.ArrayList<>(java.util.List.of(questionBank[idx][1], questionBank[idx][2], questionBank[idx][3], questionBank[idx][4]));
             java.util.Collections.shuffle(optTexts, rand);
-            
-            int correctAnswer = optTexts.indexOf(questionBank[i][5]);
-            
+
+            int correctAnswer = optTexts.indexOf(questionBank[idx][5]);
+
             q.put("options", optTexts);
             q.put("correctAnswer", correctAnswer);
-            q.put("explanation", "The correct answer is " + questionBank[i][5]);
+            q.put("explanation", questionBank[idx][6]);
             q.put("marks", 10);
             questions.add(q);
         }
@@ -436,10 +473,185 @@ public class AIService {
             "https://scholar.google.com"
         };
 
+        // Rich markdown content for each module
+        String[] contents = {
+            // Module 1: Introduction
+            "## Introduction to " + topic + " Systems\n\n" +
+            "Welcome to the opening module of this Faculty Development Program. This module establishes the foundational understanding you need to engage deeply with " + topic + " throughout this course.\n\n" +
+            "### Objectives\n\n" +
+            "By the end of this module, participants will be able to:\n" +
+            "- Define the core principles and terminology of " + topic + "\n" +
+            "- Trace the historical evolution from traditional approaches to modern " + topic + " practices\n" +
+            "- Identify the key stakeholders and ecosystems involved\n" +
+            "- Articulate why " + topic + " is critical for 21st-century higher education\n\n" +
+            "### Key Concepts\n\n" +
+            "**1. Definition & Scope** — " + topic + " encompasses a broad set of methodologies, tools, and frameworks that are transforming how institutions teach, assess, and engage students. It bridges the gap between theoretical knowledge and practical application.\n\n" +
+            "**2. Historical Context** — The evolution from traditional lecture-based approaches to modern, technology-enhanced practices represents a fundamental paradigm shift in education. Understanding this trajectory helps faculty appreciate the necessity of continuous professional development.\n\n" +
+            "**3. Current Landscape** — Today, institutions worldwide are adopting " + topic + " as part of NEP 2020 compliance, NBA accreditation requirements, and AICTE quality mandates. Early adopters report 30–40% improvements in student engagement.\n\n" +
+            "### Detailed Explanation\n\n" +
+            "When universities adopt " + topic + ", they move away from rigid, one-size-fits-all systems. Instead, they embrace modularity and personalization. The core architecture typically involves:\n\n" +
+            "- **Data Collection Layer**: Gathering student performance metrics, engagement data, and feedback\n" +
+            "- **Processing Engine**: Analyzing patterns to identify at-risk students and optimize content delivery\n" +
+            "- **Presentation Layer**: Delivering personalized learning experiences through modern interfaces\n" +
+            "- **Feedback Loop**: Continuously improving based on outcomes data\n\n" +
+            "This modular approach means individual components can be updated independently without disrupting the entire system — a critical advantage for institutions managing thousands of students simultaneously.\n\n" +
+            "### Real-world Applications\n\n" +
+            "Institutions globally are leveraging " + topic + " to:\n" +
+            "- **Predict student dropouts** using early-warning analytics systems (MIT reports 25% reduction in dropout rates)\n" +
+            "- **Personalize learning trajectories** in real-time based on comprehension metrics\n" +
+            "- **Automate administrative tasks** freeing faculty to focus on high-value mentoring\n" +
+            "- **Enable collaborative learning** across geographical boundaries\n\n" +
+            "### Industry Use Cases\n\n" +
+            "- **EdTech Platforms**: Companies like Coursera and edX leverage these systems to serve millions of learners worldwide\n" +
+            "- **University IT Departments**: IITs and IIMs have implemented scalable " + topic + " infrastructure to handle concurrent usage by 10,000+ students\n" +
+            "- **Corporate Training**: Companies like TCS and Infosys use similar frameworks for upskilling 500,000+ employees annually\n\n" +
+            "### Best Practices\n\n" +
+            "- Always begin with a needs assessment before implementing " + topic + "\n" +
+            "- Ensure data compliance (GDPR, Indian IT Act) when collecting student information\n" +
+            "- Start small with pilot programs before institution-wide rollout\n" +
+            "- Involve faculty as co-creators, not just consumers, of new systems\n\n" +
+            "### Advantages & Challenges\n\n" +
+            "**Advantages**: Unprecedented scalability, deep analytical insights, personalized learning paths, reduced administrative burden, and improved accreditation readiness.\n\n" +
+            "**Challenges**: The steep learning curve for faculty adoption, initial infrastructure investment, data privacy concerns, and the need for sustained institutional commitment.\n\n" +
+            "### Summary\n\n" +
+            "This module established the foundational understanding of " + topic + " — its definition, historical context, current relevance, and practical applications in higher education. With this grounding, you are prepared to explore the methodologies and frameworks in the next module.\n\n" +
+            "### Key Takeaways\n\n" +
+            "- " + topic + " is becoming a core competency for modern educators\n" +
+            "- Understanding the historical context helps faculty make informed adoption decisions\n" +
+            "- Indian institutions are at an inflection point for widespread adoption under NEP 2020\n" +
+            "- Starting small and iterating is more effective than big-bang deployments",
+
+            // Module 2: Methodologies
+            "## Core Methodologies & Design Frameworks\n\n" +
+            "Building on the foundational concepts from Module 1, this module dives deep into the theoretical frameworks and proven methodologies that underpin effective " + topic + " implementations.\n\n" +
+            "### Objectives\n\n" +
+            "By the end of this module, participants will be able to:\n" +
+            "- Apply Bloom's Taxonomy to design " + topic + "-enhanced curricula\n" +
+            "- Implement Problem-Based Learning (PBL) and Flipped Classroom models\n" +
+            "- Design assessment rubrics aligned with Outcome-Based Education (OBE)\n" +
+            "- Evaluate the effectiveness of different pedagogical approaches\n\n" +
+            "### Key Concepts\n\n" +
+            "**1. Bloom's Taxonomy & " + topic + "** — We examine how " + topic + " maps to each level of Bloom's Taxonomy, from basic recall (Remember) through creative application (Create). Higher-order thinking skills like Analysis, Evaluation, and Creation are naturally strengthened when faculty incorporate interactive, technology-enhanced activities.\n\n" +
+            "**2. Constructivist Learning Theory** — " + topic + " aligns naturally with constructivist approaches where learners build knowledge through experience rather than passive reception. Faculty become facilitators rather than lecturers.\n\n" +
+            "**3. Universal Design for Learning (UDL)** — Ensuring that " + topic + " implementations are accessible to all learners, including those with disabilities, is not just ethical but also required by regulatory frameworks.\n\n" +
+            "### Detailed Explanation\n\n" +
+            "**Problem-Based Learning (PBL)** — Students work collaboratively on real-world problems. Research from Maastricht University shows PBL increases knowledge retention by up to 50% compared to traditional lectures. In the context of " + topic + ", faculty design authentic problems that require students to apply theoretical concepts in practical scenarios.\n\n" +
+            "**Flipped Classroom Model** — Faculty prepare enhanced materials (videos, interactive simulations, reading guides) for pre-class study, then use class time for hands-on problem-solving, peer discussions, and one-on-one mentoring. Studies show this approach increases active learning time by 300%.\n\n" +
+            "**Collaborative Learning** — Technology enables new forms of collaboration through shared digital workspaces, real-time document editing, peer review systems, and cross-institutional projects. Students develop essential teamwork skills while mastering " + topic + " concepts.\n\n" +
+            "### Real-world Applications\n\n" +
+            "**Case Study — VIT Vellore Implementation**: The CSE department at VIT implemented " + topic + " across 12 courses in 2024. Results after one semester:\n" +
+            "- 87% of faculty found the transition manageable with proper training\n" +
+            "- 92% observed improved student participation in class activities\n" +
+            "- Average examination scores improved by 15 percentile points\n" +
+            "- Student satisfaction scores increased from 3.2/5 to 4.1/5\n\n" +
+            "### Best Practices\n\n" +
+            "- Align every learning activity with specific, measurable Course Outcomes (COs)\n" +
+            "- Use backward design: start with desired outcomes, then design assessments, then plan activities\n" +
+            "- Incorporate both formative (ongoing) and summative (final) assessments\n" +
+            "- Document your methodology changes for NBA/NAAC accreditation evidence\n\n" +
+            "### Advantages & Challenges\n\n" +
+            "**Advantages**: Strong theoretical grounding ensures sustainable long-term adoption; research-backed methods give faculty confidence; alignment with accreditation requirements provides institutional support.\n\n" +
+            "**Challenges**: Faculty may need to invest significant time initially to redesign courses; some students may resist active learning if accustomed to passive lectures; institutional culture change takes time.\n\n" +
+            "### Summary\n\n" +
+            "This module provided the theoretical and practical frameworks needed to design effective " + topic + " implementations. By combining PBL, Flipped Classroom, and Collaborative Learning with Bloom's Taxonomy and OBE principles, faculty can create transformative educational experiences.\n\n" +
+            "### Key Takeaways\n\n" +
+            "- Strong theoretical grounding ensures sustainable adoption\n" +
+            "- PBL and Flipped Classroom models are the most effective entry strategies\n" +
+            "- Backward design (outcomes → assessments → activities) ensures coherent curriculum\n" +
+            "- Real institutional case studies validate practical feasibility",
+
+            // Module 3: Practical Labs
+            "## Practical Labs & Deployment\n\n" +
+            "This is the most hands-on module of the FDP. We move from theoretical understanding to practical implementation, giving you the tools and confidence to deploy " + topic + " in your own courses.\n\n" +
+            "### Objectives\n\n" +
+            "By the end of this module, participants will be able to:\n" +
+            "- Configure and use Learning Management Systems (LMS) for " + topic + "\n" +
+            "- Design rubric-based assessments and automated quiz workflows\n" +
+            "- Create interactive digital content using open-source tools\n" +
+            "- Execute a three-phase pilot implementation plan\n\n" +
+            "### Key Concepts\n\n" +
+            "**1. Learning Management Systems** — Platforms like Moodle, Google Classroom, and Canvas serve as the digital backbone for " + topic + ". We cover course structure design, assignment workflows, grade book configuration, and analytics dashboards.\n\n" +
+            "**2. Assessment Tools** — Modern assessment goes beyond MCQs. We explore rubric-based evaluation, peer assessment workflows, portfolio submissions, and automated feedback systems. These tools can reduce grading time by 60% while improving feedback quality.\n\n" +
+            "**3. Content Creation** — Using open-source tools (OBS Studio, Canva, H5P) to create interactive study materials, digital notebooks, video lectures, and problem sets that engage students across multiple modalities.\n\n" +
+            "### Detailed Explanation\n\n" +
+            "**Implementation Blueprint for " + topic + "**\n\n" +
+            "**Phase 1 — Pilot (Week 1-2):** Select one course section with 30–60 students. Implement basic " + topic + " techniques — digital submission of assignments, one interactive activity per week, and an online quiz. Gather student feedback through a short survey. Track participation rates and compare with previous semesters.\n\n" +
+            "**Phase 2 — Iterate (Week 3-4):** Refine your approach based on Phase 1 feedback. Add more sophisticated assessment components — peer review assignments, discussion forums, or collaborative projects. Train teaching assistants to support the new workflow. Begin documenting what works and what doesn't.\n\n" +
+            "**Phase 3 — Scale (Month 2-3):** Expand to additional course sections or courses. Share your documented best practices with department colleagues. Present findings at a department meeting or institutional workshop. Build a community of practice around " + topic + ".\n\n" +
+            "### Common Pitfalls\n\n" +
+            "- **Over-engineering:** Start simple. A well-designed Google Form quiz is better than a complex system nobody uses\n" +
+            "- **Ignoring accessibility:** Ensure all materials work on mobile devices and meet WCAG 2.1 guidelines\n" +
+            "- **Skipping the pilot:** Always test with a small group before full deployment — this saves time and reputation\n" +
+            "- **Neglecting training:** Allocate at least 2 hours for student orientation on new tools\n\n" +
+            "### Real-world Applications\n\n" +
+            "- **BITS Pilani** deployed Moodle-based " + topic + " across 200+ courses, reducing paper usage by 80%\n" +
+            "- **Anna University** implemented automated quiz systems that handle 50,000 concurrent submissions during semester exams\n" +
+            "- **IIT Bombay** uses open-source tools to create NPTEL courses reaching 10 million+ learners\n\n" +
+            "### Best Practices\n\n" +
+            "- Create a consistent template for all course pages to reduce student confusion\n" +
+            "- Use analytics dashboards weekly to identify struggling students early\n" +
+            "- Keep a feedback loop open — anonymous student surveys every 2 weeks\n" +
+            "- Back up all digital content to at least two locations\n\n" +
+            "### Summary\n\n" +
+            "This module equipped you with practical tools, a proven implementation blueprint, and awareness of common pitfalls. The three-phase approach (Pilot → Iterate → Scale) minimizes risk while maximizing learning from each stage.\n\n" +
+            "### Key Takeaways\n\n" +
+            "- Practical tools exist for every budget — many are free and open-source\n" +
+            "- The three-phase implementation approach minimizes institutional risk\n" +
+            "- Start simple, iterate fast, and scale only what demonstrably works\n" +
+            "- Document everything for accreditation evidence and knowledge sharing",
+
+            // Module 4: Assessment & Case Studies
+            "## Assessment Strategies & Case Studies\n\n" +
+            "The final module consolidates everything you have learned and prepares you for sustainable, evidence-based integration of " + topic + " into your professional practice.\n\n" +
+            "### Objectives\n\n" +
+            "By the end of this module, participants will be able to:\n" +
+            "- Design multi-modal assessment strategies for " + topic + "-enhanced courses\n" +
+            "- Analyze real-world case studies from Indian and global institutions\n" +
+            "- Identify research opportunities in " + topic + "\n" +
+            "- Create a 90-day post-FDP action plan for sustained implementation\n\n" +
+            "### Key Concepts\n\n" +
+            "**1. Authentic Assessment** — Moving beyond traditional exams to portfolios, project-based evaluations, peer assessments, and competency demonstrations that measure real understanding.\n\n" +
+            "**2. Learning Analytics** — Using data from LMS platforms and student interactions to identify patterns, predict at-risk students, and personalize interventions. Early-warning systems improve student retention by 15–20%.\n\n" +
+            "**3. Blockchain for Academic Credentials** — Tamper-proof digital certificates that students can verify and share globally. This technology is moving from experimental to mainstream in progressive institutions.\n\n" +
+            "### Detailed Explanation\n\n" +
+            "**Multi-Modal Assessment Design for " + topic + "**\n\n" +
+            "A balanced assessment strategy combines:\n" +
+            "- **Formative Assessments (40%):** Weekly quizzes, discussion participation, peer reviews — these provide continuous feedback and keep students engaged\n" +
+            "- **Project-Based Assessment (30%):** A semester-long project where students apply " + topic + " concepts to a real problem — this develops higher-order thinking skills\n" +
+            "- **Summative Assessment (30%):** End-of-term examination combining MCQs, short answers, and case analysis — this ensures comprehensive coverage of all learning outcomes\n\n" +
+            "**Rubric Design Principles:**\n" +
+            "- Each criterion should map to a specific Course Outcome (CO)\n" +
+            "- Use 4-level scales: Exemplary, Proficient, Developing, Beginning\n" +
+            "- Include descriptors that are specific enough for consistent grading across evaluators\n" +
+            "- Share rubrics with students BEFORE the assessment to set clear expectations\n\n" +
+            "### Real-world Applications\n\n" +
+            "**Global Case Study — Georgia Tech (USA):** Implemented AI-powered " + topic + " grading assistants that handle 40,000 student submissions per semester with 95% accuracy, freeing faculty time for mentoring.\n\n" +
+            "**Indian Case Study — IIIT Hyderabad:** Developed a blockchain-based credential verification system that reduced certificate fraud by 100% and processing time by 90%.\n\n" +
+            "**Cross-institutional Study — 10 Indian Universities (2024):** A meta-analysis across engineering colleges showed that structured " + topic + " programs improved NBA accreditation scores by an average of 22%.\n\n" +
+            "### Research Opportunities\n\n" +
+            "Faculty members are uniquely positioned to contribute to " + topic + " research:\n" +
+            "- **Effectiveness studies:** Comparing learning outcomes between traditional and " + topic + "-enhanced courses\n" +
+            "- **Equity analysis:** Investigating whether technology-enhanced tools benefit all student demographics equally\n" +
+            "- **Faculty adoption patterns:** Understanding barriers and motivators in Indian university contexts\n" +
+            "- **Publication venues:** IEEE Education, ACM Computing Surveys, Journal of Engineering Education\n\n" +
+            "### Your 90-Day Post-FDP Action Plan\n\n" +
+            "- **Month 1:** Implement your pilot in one course section; collect baseline data\n" +
+            "- **Month 2:** Gather student feedback, iterate on design, expand to a second section\n" +
+            "- **Month 3:** Share results with your department, publish findings, and plan for next semester scaling\n\n" +
+            "### Summary\n\n" +
+            "This module tied together all the threads of the program — from theoretical frameworks to practical tools to evidence-based assessment. With your 90-day action plan, you have a concrete roadmap for turning this FDP experience into lasting classroom impact.\n\n" +
+            "### Key Takeaways\n\n" +
+            "- Multi-modal assessment captures a fuller picture of student learning\n" +
+            "- Learning analytics transform raw data into actionable teaching insights\n" +
+            "- Real-world case studies prove that " + topic + " works across diverse institutional contexts\n" +
+            "- The 90-day action plan ensures post-FDP continuity and measurable impact"
+        };
+
         for (int i = 0; i < 4; i++) {
             Map<String, Object> m = new HashMap<>();
             m.put("title", titles[i]);
             m.put("description", descs[i]);
+            m.put("content", contents[i]);
             m.put("duration", dur[i]);
             m.put("videoUrl", "");
             m.put("pdfUrl", "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
@@ -450,29 +662,74 @@ public class AIService {
         result.put("modules", modules);
 
         java.util.List<Map<String, Object>> quizzes = new java.util.ArrayList<>();
-        String[] qs = {
-            "What is the main objective of implementing " + topic + "?",
-            "Which of the following is a primary challenge in " + topic + " adoption?",
-            "How does " + topic + " align with Outcome-Based Education (OBE)?",
-            "What is the recommended starting point for a pilot implementation of " + topic + "?"
+        String[][] quizBank = {
+            {"What is the main objective of implementing " + topic + "?",
+                "To automate workflows and improve efficiency", "To completely replace faculty members",
+                "To increase hardware requirements", "None of the above",
+                "To automate workflows and improve efficiency",
+                "The primary objective is to enhance efficiency and learning outcomes, not to replace human elements."},
+            {"Which of the following is a primary challenge in " + topic + " adoption?",
+                "Data privacy and integration complexity", "High scalability and zero overhead",
+                "Lack of internet connections in universities", "Difficulty in naming files",
+                "Data privacy and integration complexity",
+                "Data privacy regulations and the complexity of integrating with legacy systems are the most common real-world barriers."},
+            {"How does " + topic + " align with Outcome-Based Education (OBE)?",
+                "By mapping technical achievements to course outcomes", "By removing grades entirely",
+                "By adding random questions to exams", "It has no alignment with OBE",
+                "By mapping technical achievements to course outcomes",
+                "OBE alignment requires that every learning activity and assessment maps to specific, measurable Course Outcomes."},
+            {"What is the recommended starting point for a pilot implementation of " + topic + "?",
+                "Starting with a single section, gathering feedback, and iterating", "Deploying globally to all courses simultaneously",
+                "Skipping testing and writing direct production code", "Shutting down the existing LMS",
+                "Starting with a single section, gathering feedback, and iterating",
+                "Piloting with a small group allows you to identify issues early and iterate before scaling."},
+            {"Which pedagogical model best supports active learning in " + topic + "?",
+                "Flipped Classroom with collaborative activities", "Traditional lecture-only delivery",
+                "Unsupervised self-study without feedback", "Memorization-based cramming sessions",
+                "Flipped Classroom with collaborative activities",
+                "Flipped Classroom models shift passive content consumption to pre-class, freeing class time for active, collaborative learning."},
+            {"What role does Bloom's Taxonomy play in designing " + topic + " curricula?",
+                "It helps design activities that target all cognitive levels from remembering to creating", "It only applies to K-12 education",
+                "It is used exclusively for writing examination papers", "It has been deprecated and is no longer relevant",
+                "It helps design activities that target all cognitive levels from remembering to creating",
+                "Bloom's Taxonomy provides a framework for ensuring that learning activities span all cognitive complexity levels."},
+            {"Which metric is most important for evaluating the success of " + topic + "?",
+                "Measurable improvement in student learning outcomes", "Number of PowerPoint slides created",
+                "Total hours faculty spent in meetings", "Size of the IT budget allocated",
+                "Measurable improvement in student learning outcomes",
+                "True success is measured by tangible improvements in how students learn, not by input metrics."},
+            {"What does NEP 2020 emphasize regarding faculty development in " + topic + "?",
+                "Continuous professional development and multidisciplinary learning", "Eliminating all examinations",
+                "Mandatory use of proprietary software only", "Reducing the number of faculty positions",
+                "Continuous professional development and multidisciplinary learning",
+                "NEP 2020 explicitly calls for continuous faculty training and promotes multidisciplinary, skill-based education."},
+            {"What is the biggest risk of skipping the pilot phase in " + topic + " implementation?",
+                "Widespread failure due to unidentified issues at scale", "Students will learn too quickly",
+                "Faculty will have too much free time", "The system will be too easy to use",
+                "Widespread failure due to unidentified issues at scale",
+                "Without a pilot, issues like technical bugs, workflow mismatches, or usability problems can cascade across the entire institution."},
+            {"How can learning analytics improve " + topic + " outcomes?",
+                "By identifying at-risk students early and personalizing interventions", "By tracking how many times students open the LMS",
+                "By automatically passing all students", "By reducing the amount of data collected",
+                "By identifying at-risk students early and personalizing interventions",
+                "Learning analytics enable proactive, data-driven interventions that target individual student needs before they fall behind."}
         };
-        String[] optAs = {"To automate workflows and improve efficiency", "High scalability and zero overhead", "By mapping technical achievements to course outcomes", "Deploying globally to all courses simultaneously"};
-        String[] optBs = {"To completely replace faculty members", "Data privacy and integration complexity", "By removing grades entirely", "Starting with a single section, gathering feedback, and iterating"};
-        String[] optCs = {"To increase hardware requirements", "Lack of internet connections in universities", "By adding random questions to exams", "Skipping testing and writing direct production code"};
-        String[] optDs = {"None of the above", "Difficulty in naming files", "It has no alignment", "Shutting down the server"};
-        String[] ans = {"To automate workflows and improve efficiency", "Data privacy and integration complexity", "By mapping technical achievements to course outcomes", "Starting with a single section, gathering feedback, and iterating"};
 
-        for (int i = 0; i < 4; i++) {
+        java.util.Random rand = new java.util.Random();
+        for (int i = 0; i < quizBank.length; i++) {
             Map<String, Object> q = new HashMap<>();
             q.put("questionId", i + 1);
-            q.put("question", qs[i]);
-            
-            java.util.List<String> optTexts = new java.util.ArrayList<>(java.util.List.of(optAs[i], optBs[i], optCs[i], optDs[i]));
-            int correctAnswer = optTexts.indexOf(ans[i]);
-            
+            q.put("id", i + 1);
+            q.put("question", quizBank[i][0]);
+
+            java.util.List<String> optTexts = new java.util.ArrayList<>(java.util.List.of(quizBank[i][1], quizBank[i][2], quizBank[i][3], quizBank[i][4]));
+            java.util.Collections.shuffle(optTexts, rand);
+            int correctAnswer = optTexts.indexOf(quizBank[i][5]);
+
             q.put("options", optTexts);
             q.put("correctAnswer", correctAnswer);
-            q.put("marks", 25);
+            q.put("explanation", quizBank[i][6]);
+            q.put("marks", 10);
             quizzes.add(q);
         }
         result.put("quizzes", quizzes);
