@@ -116,6 +116,33 @@ public class AIService {
     }
 
     /**
+     * Generate contextual quiz questions using FDP data.
+     */
+    public Map<String, Object> generateContextualQuiz(com.aifdphub.model.FdpProgram fdp, int questionCount) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("topic", fdp.getTitle());
+            request.put("question_count", questionCount);
+            request.put("category", fdp.getCategory());
+            request.put("difficulty", fdp.getDifficultyLevel());
+            request.put("modules", fdp.getModules() != null ? fdp.getModules() : "");
+            request.put("learningContent", fdp.getDescription() != null ? fdp.getDescription() : "");
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    aiServiceUrl + "/api/ai/generate-quiz", request, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.warn("AI service unavailable for contextual quiz generation, using fallback: {}", e.getMessage());
+        }
+
+        return generateFallbackQuiz(fdp.getTitle(), questionCount);
+    }
+
+
+    /**
      * Evaluate quiz answers using AI.
      */
     @SuppressWarnings("unchecked")

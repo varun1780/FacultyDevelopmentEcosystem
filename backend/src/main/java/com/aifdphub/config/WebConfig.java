@@ -10,6 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Map public URL /uploads/** to the directory "uploads/" on the local filesystem
+        // This serves videos, PDFs, and other uploaded files
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
     }

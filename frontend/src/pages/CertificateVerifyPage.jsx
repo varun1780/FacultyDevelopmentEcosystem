@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { certificateAPI } from '../services/api';
 import { 
@@ -10,6 +10,7 @@ import { HiSparkles } from 'react-icons/hi2';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { generateNativePDF } from '../utils/pdfGenerator';
+import CertificateTemplate from '../components/CertificateTemplate';
 
 export default function CertificateVerifyPage() {
   const { certificateId } = useParams();
@@ -18,6 +19,25 @@ export default function CertificateVerifyPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth - 24;
+        const newScale = Math.min(0.85, containerWidth / 1123);
+        setScale(newScale);
+      }
+    };
+    const timer = setTimeout(updateScale, 100);
+    window.addEventListener('resize', updateScale);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateScale);
+    };
+  }, []);
 
   const verifyCertificateId = async (id) => {
     if (!id.trim()) return;
@@ -151,6 +171,20 @@ export default function CertificateVerifyPage() {
       ? `url(${template.backgroundUrl}) no-repeat center center/cover`
       : 'linear-gradient(180deg, #fffdf8 0%, #fff9ee 100%)';
   const canvasTextColor = isDarkTheme ? '#cbd5e1' : (template.textColor || '#1a1a2e');
+
+  const previewCert = result ? {
+    certificateId: result.certificateId,
+    issuedAt: result.issuedAt,
+    quizScore: result.quizScore,
+    fdpProgram: { title: result.fdpName, instructorName: result.instructorName },
+    isOnChain: result.isOnChain,
+    txHash: result.txHash,
+    status: 'VERIFIED'
+  } : null;
+
+  const previewUser = result ? {
+    name: result.facultyName
+  } : null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-10 px-4">
@@ -332,124 +366,33 @@ export default function CertificateVerifyPage() {
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Visual Certificate Render</span>
                     <span className="text-xs text-gray-500">A4 Landscape Layout</span>
                   </div>
-                           <div className="flex items-center justify-center overflow-x-auto bg-gray-900/10 p-3 rounded-2xl border border-gray-200 shadow-inner">
-                    <div 
-                      id="issued-certificate-canvas" 
-                      className={`w-[794px] h-[561px] p-12 flex flex-col justify-between relative shrink-0 ${fontClass}`}
+                  <div
+                    ref={containerRef}
+                    className="overflow-visible bg-gray-900/10 p-3 rounded-2xl border border-gray-200 shadow-inner"
+                    style={{ width: '100%' }}
+                  >
+                    <div
                       style={{
-                        background: canvasBg,
-                        border: getBorderStyle(),
-                        color: canvasTextColor,
+                        position: 'relative',
+                        width: `${1123 * scale}px`,
+                        height: `${794 * scale}px`,
+                        margin: '0 auto',
+                        overflow: 'visible',
                       }}
                     >
-                      {/* Corner decorations */}
-                      {!isDarkTheme && (
-                        <>
-                          <div className="absolute top-2 left-2 w-14 h-14 border-t-2 border-l-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                          <div className="absolute top-2 right-2 w-14 h-14 border-t-2 border-r-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                          <div className="absolute bottom-2 left-2 w-14 h-14 border-b-2 border-l-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                          <div className="absolute bottom-2 right-2 w-14 h-14 border-b-2 border-r-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                        </>
-                      )}
-                      {isDarkTheme && (
-                        <>
-                          <div className="absolute top-2 left-2 w-14 h-14 border-t-2 border-l-2 opacity-70 border-cyan-500"></div>
-                          <div className="absolute top-2 right-2 w-14 h-14 border-t-2 border-r-2 opacity-70 border-cyan-500"></div>
-                          <div className="absolute bottom-2 left-2 w-14 h-14 border-b-2 border-l-2 opacity-70 border-cyan-500"></div>
-                          <div className="absolute bottom-2 right-2 w-14 h-14 border-b-2 border-r-2 opacity-70 border-cyan-500"></div>
-                        </>
-                      )}
-
-                      {/* Header */}
-                      <div className="text-center space-y-2">
-                        <div className="flex items-center justify-center gap-4">
-                          <img 
-                            src={template.logoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237c3aed"><path d="M12 2L1 7l11 5 9-4.09V14a1 1 0 0 0 2 0V7.91L23 7M4.73 14a9 9 0 0 0 14.54 0"/></svg>`} 
-                            alt="Logo" 
-                            className="w-14 h-14 object-contain animate-fade-in" 
-                          />
-                          <div className="text-left">
-                            <h2 className="text-lg font-bold tracking-wide uppercase leading-tight">{template.collegeName}</h2>
-                            <p className="text-xs opacity-75 font-medium">{template.departmentName}</p>
-                          </div>
-                        </div>
-                        <div className="w-28 h-0.5 mx-auto my-3" style={{ background: isDarkTheme ? 'linear-gradient(90deg, #06b6d4, #8b5cf6)' : `linear-gradient(90deg, ${template.primaryColor}, ${template.secondaryColor})` }}></div>
+                      <div
+                        style={{
+                          transform: `scale(${scale})`,
+                          transformOrigin: 'top left',
+                          width: '1123px',
+                          height: '794px',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                        }}
+                      >
+                        <CertificateTemplate cert={previewCert} user={previewUser} templateSettings={result.templateSettings} />
                       </div>
-
-                      {/* Title */}
-                      <div className="text-center space-y-1">
-                        <span className="text-[10px] font-bold tracking-widest uppercase animate-pulse" style={{ color: isDarkTheme ? '#06b6d4' : template.primaryColor }}>CERTIFICATE OF COMPLETION</span>
-                        <h1 className="text-2xl font-bold tracking-wide">Faculty Development Platform</h1>
-                      </div>
-
-                      {/* Body */}
-                      <div className="text-center px-8 my-2">
-                        <p 
-                          className="text-sm leading-relaxed" 
-                          dangerouslySetInnerHTML={{ __html: getFormattedText() }}
-                        />
-                      </div>
-
-                      {/* Verification & IDs */}
-                      <div className="grid grid-cols-3 items-end gap-2 text-center text-[10px]">
-                        <div className="text-left pl-4 space-y-1">
-                          <p className="opacity-50 text-[8px] uppercase tracking-wider">Date Issued</p>
-                          <p className="font-semibold">{issuedDate}</p>
-                          <p className="opacity-50 text-[8px] uppercase tracking-wider mt-1">Certificate ID</p>
-                          <p className="font-mono font-bold" style={{ color: isDarkTheme ? '#06b6d4' : template.primaryColor }}>{result.certificateId}</p>
-                        </div>
-
-                        {/* QR verification */}
-                        <div className="flex flex-col items-center justify-center">
-                          {template.enableQr ? (
-                            <div className="p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-                              <QRCodeSVG value={`http://localhost:5173/verify-certificate/${result.certificateId}`} size={54} />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-150 rounded border border-dashed flex items-center justify-center text-[8px] text-gray-400">QR disabled</div>
-                          )}
-                          <span className="text-[8px] mt-1 opacity-50 font-medium">Scan to Verify</span>
-                        </div>
-
-                        <div className="text-right pr-4 space-y-1">
-                          <p className="opacity-50 text-[8px] uppercase tracking-wider">Blockchain Ledger</p>
-                          <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[8px] font-bold border border-emerald-100">
-                            {result.isOnChain ? 'On Chain' : 'Verified'}
-                          </span>
-                          {result.txHash && (
-                            <span className="block text-[8px] font-mono text-primary-500 truncate mt-1">{result.txHash.substring(0, 16)}...</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Signatures */}
-                      <div className="border-t border-gray-250/20 pt-4 grid grid-cols-3 gap-2 text-center">
-                        <div className="flex flex-col items-center justify-end">
-                          {template.principalSignatureUrl ? (
-                            <img src={template.principalSignatureUrl} alt="Principal Signature" className="h-8 object-contain" />
-                          ) : (
-                            <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1"></div>
-                          )}
-                          <p className="text-[9px] font-semibold opacity-85">Principal</p>
-                        </div>
-                        <div className="flex flex-col items-center justify-end">
-                          {template.hodSignatureUrl ? (
-                            <img src={template.hodSignatureUrl} alt="HOD Signature" className="h-8 object-contain" />
-                          ) : (
-                            <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1"></div>
-                          )}
-                          <p className="text-[9px] font-semibold opacity-85">Head of Dept.</p>
-                        </div>
-                        <div className="flex flex-col items-center justify-end">
-                          {template.coordinatorSignatureUrl ? (
-                            <img src={template.coordinatorSignatureUrl} alt="Coordinator Signature" className="h-8 object-contain" />
-                          ) : (
-                            <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1"></div>
-                          )}
-                          <p className="text-[9px] font-semibold opacity-85">FDP Coordinator</p>
-                        </div>
-                      </div>
-
                     </div>
                   </div>
                 </div>

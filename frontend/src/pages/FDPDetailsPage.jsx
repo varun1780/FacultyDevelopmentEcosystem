@@ -4,6 +4,7 @@ import { fdpAPI, enrollmentAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { HiOutlineClock, HiOutlineUsers, HiOutlineAcademicCap } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { ShareFDPButton } from '../components/ShareFDPModal';
 
 export default function FDPDetailsPage() {
   const { id } = useParams();
@@ -46,9 +47,10 @@ export default function FDPDetailsPage() {
           </div>
         </div>
         <div className="p-6 space-y-6">
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button onClick={handleEnroll} className="btn-primary">Enroll Now</button>
             <Link to={`/fdp/${id}/learn`} className="btn-secondary">Start Learning</Link>
+            <ShareFDPButton fdp={fdp} size="md" />
           </div>
           {outcomes.length > 0 && (
             <div><h3 className="section-title">Learning Outcomes</h3><ul className="space-y-2">{outcomes.map((o, i) => <li key={i} className="flex items-center gap-2 text-sm text-gray-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />{o.trim()}</li>)}</ul></div>

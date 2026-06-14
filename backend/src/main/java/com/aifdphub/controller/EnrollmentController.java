@@ -79,6 +79,7 @@ public class EnrollmentController {
         Enrollment enrollment = new Enrollment();
         enrollment.setUser(user);
         enrollment.setFdpProgram(fdp);
+        enrollment.setCollege(fdp.getCollege());
 
         // Increment enrolled count
         fdp.setEnrolledCount(fdp.getEnrolledCount() + 1);
@@ -86,12 +87,14 @@ public class EnrollmentController {
 
         Enrollment saved = enrollmentRepository.save(enrollment);
 
+        Long collegeId = fdp.getCollege() != null ? fdp.getCollege().getId() : null;
         notificationService.createNotification(
             "New FDP Enrollment",
             user.getName() + " enrolled in " + fdp.getTitle(),
             "ENROLLMENT",
             "ADMIN",
-            null
+            null,
+            collegeId
         );
 
         notificationService.createNotification(
@@ -147,12 +150,14 @@ public class EnrollmentController {
             Enrollment saved = enrollmentRepository.save(enrollment);
 
             if (saved.getIsCompleted() && !previouslyCompleted) {
+                Long collegeId = enrollment.getFdpProgram().getCollege() != null ? enrollment.getFdpProgram().getCollege().getId() : null;
                 notificationService.createNotification(
                     "FDP Completed",
                     enrollment.getUser().getName() + " has completed the FDP: " + enrollment.getFdpProgram().getTitle(),
                     "SYSTEM",
                     "ADMIN",
-                    null
+                    null,
+                    collegeId
                 );
                 notificationService.createNotification(
                     "FDP Completed",
@@ -201,12 +206,14 @@ public class EnrollmentController {
 
         Enrollment saved = enrollmentRepository.save(enrollment);
 
+        Long collegeId = fdp.getCollege() != null ? fdp.getCollege().getId() : null;
         notificationService.createNotification(
             "Assignment Submitted Successfully",
             "Assignment submitted successfully by " + saved.getUser().getName() + " for " + fdp.getTitle(),
             "ASSIGNMENT",
             "ADMIN",
-            null
+            null,
+            collegeId
         );
 
         if (saved.getIsCompleted() && !previouslyCompleted) {
@@ -215,7 +222,8 @@ public class EnrollmentController {
                 saved.getUser().getName() + " has completed the FDP: " + fdp.getTitle(),
                 "SYSTEM",
                 "ADMIN",
-                null
+                null,
+                collegeId
             );
             notificationService.createNotification(
                 "FDP Completed",
@@ -290,12 +298,14 @@ public class EnrollmentController {
 
         Enrollment saved = enrollmentRepository.save(enrollment);
 
+        Long collegeId = fdp.getCollege() != null ? fdp.getCollege().getId() : null;
         notificationService.createNotification(
             "Quiz Completed",
             saved.getUser().getName() + " completed quiz for " + fdp.getTitle() + " with score " + score + "%",
             "QUIZ",
             "ADMIN",
-            null
+            null,
+            collegeId
         );
 
         if (saved.getIsCompleted() && !previouslyCompleted) {
@@ -304,7 +314,8 @@ public class EnrollmentController {
                 saved.getUser().getName() + " has completed the FDP: " + fdp.getTitle(),
                 "SYSTEM",
                 "ADMIN",
-                null
+                null,
+                collegeId
             );
             notificationService.createNotification(
                 "FDP Completed",
@@ -327,6 +338,7 @@ public class EnrollmentController {
             QuizResult quizResult = new QuizResult();
             quizResult.setFacultyId(enrollment.getUser().getId());
             quizResult.setFdpId(enrollment.getFdpProgram().getId());
+            quizResult.setCollegeId(fdp.getCollege() != null ? fdp.getCollege().getId() : null);
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             quizResult.setAnswers(mapper.writeValueAsString(answers));
             quizResult.setScore(score);

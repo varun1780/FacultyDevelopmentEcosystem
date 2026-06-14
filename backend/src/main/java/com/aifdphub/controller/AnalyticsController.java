@@ -3,6 +3,7 @@ package com.aifdphub.controller;
 import com.aifdphub.model.*;
 import com.aifdphub.repository.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -26,18 +27,34 @@ public class AnalyticsController {
         this.certificateRepository = certificateRepository;
     }
 
+    private boolean isAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
     @GetMapping("/admin")
-    public ResponseEntity<?> getAdminAnalytics() {
+    public ResponseEntity<?> getAdminAnalytics(Authentication auth) {
+        if (!isAdmin(auth)) return ResponseEntity.status(403).build();
+
+        User admin = (User) auth.getPrincipal();
+        Long collegeId = admin.getCollege() != null ? admin.getCollege().getId() : null;
+        if (collegeId == null) return ResponseEntity.status(403).build();
+
         Map<String, Object> analytics = new HashMap<>();
 
+        // Fetch data scoped to college
+        List<FdpProgram> allFdps = fdpRepository.findByCollegeId(collegeId);
+        List<Enrollment> allEnrollments = enrollmentRepository.findByFdpProgramCollegeId(collegeId);
+        List<Certificate> allCerts = certificateRepository.findByFdpProgramCollegeId(collegeId);
+
         // Overview stats
-        long totalFaculty = userRepository.countByRole("FACULTY");
-        long totalUsers = userRepository.count();
-        long totalFdps = fdpRepository.count();
-        long activeFdps = fdpRepository.countByStatus("Active");
-        long totalEnrollments = enrollmentRepository.count();
-        long completedEnrollments = enrollmentRepository.countByIsCompleted(true);
-        long totalCertificates = certificateRepository.count();
+        long totalFaculty = allEnrollments.stream().map(e -> e.getUser().getId()).distinct().count();
+        long totalUsers = totalFaculty; // Admins only care about faculty in their college
+        long totalFdps = allFdps.size();
+        long activeFdps = allFdps.stream().filter(f -> "Active".equalsIgnoreCase(f.getStatus())).count();
+        long totalEnrollments = allEnrollments.size();
+        long completedEnrollments = allEnrollments.stream().filter(e -> Boolean.TRUE.equals(e.getIsCompleted())).count();
+        long totalCertificates = allCerts.size();
 
         analytics.put("totalFaculty", totalFaculty);
         analytics.put("totalUsers", totalUsers);
@@ -50,7 +67,6 @@ public class AnalyticsController {
                 ? Math.round((completedEnrollments * 100.0 / totalEnrollments) * 10) / 10.0 : 0);
 
         // Category distribution
-        List<FdpProgram> allFdps = fdpRepository.findAll();
         Map<String, Long> categoryDist = allFdps.stream()
                 .filter(f -> f.getCategory() != null)
                 .collect(Collectors.groupingBy(FdpProgram::getCategory, Collectors.counting()));
@@ -63,7 +79,14 @@ public class AnalyticsController {
         analytics.put("statusDistribution", statusDist);
 
         // Recent FDPs (sorted by creation date, limited to 5)
-        List<FdpProgram> recentFdps = fdpRepository.findAllByOrderByCreatedAtDesc();
+        List<FdpProgram> recentFdps = allFdps.stream()
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
+                .collect(Collectors.toList());
         List<Map<String, Object>> recentFdpsList = recentFdps.stream()
                 .limit(5)
                 .map(f -> {
@@ -82,7 +105,6 @@ public class AnalyticsController {
         analytics.put("recentFdps", recentFdpsList);
 
         // Faculty performance (top performers)
-        List<Enrollment> allEnrollments = enrollmentRepository.findAll();
         List<Map<String, Object>> topPerformers = allEnrollments.stream()
                 .filter(e -> e.getQuizScore() != null && e.getQuizScore() > 0)
                 .sorted((a, b) -> Double.compare(b.getQuizScore(), a.getQuizScore()))
@@ -94,6 +116,8 @@ public class AnalyticsController {
                     perf.put("score", e.getQuizScore());
                     perf.put("progress", e.getProgressPercentage());
                     perf.put("status", e.getStatus());
+                    long certCount = allCerts.stream().filter(c -> c.getUser().getId().equals(e.getUser().getId())).count();
+                    perf.put("certificates", certCount);
                     return perf;
                 })
                 .collect(Collectors.toList());

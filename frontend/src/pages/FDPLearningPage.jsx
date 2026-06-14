@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fdpAPI, enrollmentAPI } from '../services/api';
+import { fdpAPI, enrollmentAPI, aiAPI } from '../services/api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useAuth } from '../context/AuthContext';
 import {
   HiOutlineBookOpen,
@@ -147,6 +149,7 @@ export default function FDPLearningPage() {
   const [completedModules, setCompletedModules] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [enrollment, setEnrollment] = useState(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Dynamic Video Resolver
   const [activeVideoUrl, setActiveVideoUrl] = useState('');
@@ -202,36 +205,92 @@ export default function FDPLearningPage() {
     }
   };
 
+  // ── Dynamic PDF Generation from module content ──
+  const handleGeneratePdf = async () => {
+    const element = document.getElementById('module-content-area');
+    if (!element) {
+      toast.error('No content to generate PDF from');
+      return;
+    }
+
+    setGeneratingPdf(true);
+    const tid = toast.loading('Generating PDF notes…');
+
+    try {
+      // Capture the rendered content at high resolution
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // A4 dimensions in px (at 72 DPI jsPDF default)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Scale canvas to fit page width
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+      // Multi-page handling: slice the image into page-height chunks
+      let heightLeft = imgHeight;
+      let position = 0;
+      let pageNumber = 0;
+
+      while (heightLeft > 0) {
+        if (pageNumber > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        position -= pageHeight;
+        pageNumber++;
+      }
+
+      const fileName = `${currentModule?.title || 'FDP-Notes'}.pdf`.replace(/[^a-zA-Z0-9\s.-]/g, '');
+      pdf.save(fileName);
+
+      toast.success('PDF notes downloaded successfully!', { id: tid, icon: '📄' });
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      toast.error('Failed to generate PDF. Please try again.', { id: tid });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
     
     const userMsg = chatInput;
-    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const newHistory = [...chatMessages, { role: 'user', content: userMsg }];
+    setChatMessages(newHistory);
     setChatInput('');
     setIsChatLoading(true);
 
     try {
-      const context = currentModule?.content || currentModule?.description || '';
-      const res = await fdpAPI.chat(userMsg, context);
+      const context = currentModule?.content || currentModule?.description || fdp?.title || '';
+      // Only send the last 10 messages to save tokens
+      const messagesToSend = newHistory.slice(-10);
+      const res = await aiAPI.chat(messagesToSend, context);
       
       const reply = res.data?.reply || res.data?.answer;
       if (reply) {
         setChatMessages(prev => [...prev, { role: 'ai', content: reply }]);
       } else {
-        const fallbackReply = getKeywordResponse(userMsg, currentModule);
-        setChatMessages(prev => [...prev, { role: 'ai', content: fallbackReply }]);
+        setChatMessages(prev => [...prev, { role: 'ai', content: "I am temporarily unavailable. Please try again later." }]);
       }
     } catch (err) {
-      console.error("AI service connection failed, using local simulated tutor response");
-      setTimeout(() => {
-        const fallbackReply = getKeywordResponse(userMsg, currentModule);
-        setChatMessages(prev => [...prev, { role: 'ai', content: fallbackReply }]);
-        setIsChatLoading(false);
-      }, 800);
-      return;
+      console.error("AI service connection failed", err);
+      setChatMessages(prev => [...prev, { role: 'ai', content: "I am temporarily unavailable. Please try again later." }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -437,29 +496,6 @@ export default function FDPLearningPage() {
               </div>
             </div>
 
-            {/* Resource Files block */}
-            {(currentModule.pdfUrl || currentModule.pptUrl || currentModule.externalLinks) && (
-              <div className="bg-gray-50 border border-gray-150 rounded-2xl p-5 mb-8">
-                <h4 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-3">Module resource materials</h4>
-                <div className="flex flex-wrap gap-3">
-                  {currentModule.pdfUrl && (
-                    <a href={currentModule.pdfUrl} target="_blank" rel="noreferrer" className="btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 bg-white">
-                      <HiOutlineDownload className="text-base" /> Download PDF Notes
-                    </a>
-                  )}
-                  {currentModule.pptUrl && (
-                    <a href={currentModule.pptUrl} target="_blank" rel="noreferrer" className="btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 bg-white">
-                      <HiOutlineDownload className="text-base" /> Download Lecture Slides
-                    </a>
-                  )}
-                  {currentModule.externalLinks && (
-                    <a href={currentModule.externalLinks} target="_blank" rel="noreferrer" className="btn-secondary !py-2 !px-3 text-xs flex items-center gap-1.5 bg-white text-primary-600 border-primary-100">
-                      <HiOutlineExternalLink className="text-base" /> Reference Link
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Module-Specific Deliverables & Resources */}
             {(currentModule.resources || currentModule.quiz || currentModule.assignment) && (
@@ -592,7 +628,7 @@ export default function FDPLearningPage() {
                   <p className="text-indigo-100 text-[10px]">Ask questions about {fdp.title}</p>
                 </div>
               </div>
-              <div className="p-5 h-72 overflow-y-auto bg-gray-50 flex flex-col gap-3">
+              <div className="p-5 overflow-y-auto bg-gray-50 flex flex-col gap-3" style={{ height: 'calc(100vh - 220px)', maxHeight: '500px' }}>
                 {chatMessages.map((msg, idx) => (
                   <div key={idx} className={`max-w-[85%] rounded-xl p-3 text-xs shadow-sm border ${
                     msg.role === 'user' 
@@ -608,7 +644,7 @@ export default function FDPLearningPage() {
                 ))}
                 {isChatLoading && (
                   <div className="max-w-[85%] rounded-xl p-3 text-xs shadow-sm border bg-white text-gray-400 border-gray-150 rounded-tl-sm self-start flex items-center gap-2">
-                    <HiOutlineSparkles className="animate-pulse text-primary-500" /> AI Tutor is typing...
+                    <HiOutlineSparkles className="animate-pulse text-primary-500" /> AI Mentor is typing...
                   </div>
                 )}
                 <div ref={chatEndRef} />
@@ -618,6 +654,10 @@ export default function FDPLearningPage() {
                   type="text" 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                     if (e.key === "Enter") handleSendMessage(e)
+                  }}
+                  disabled={isChatLoading}
                   placeholder="Ask a question..." 
                   className="w-full bg-gray-50 border border-gray-200 text-xs rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-primary-500 transition-all"
                 />

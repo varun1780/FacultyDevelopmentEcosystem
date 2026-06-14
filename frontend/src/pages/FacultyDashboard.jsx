@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { enrollmentAPI, certificateAPI, analyticsAPI } from '../services/api';
 import { HiOutlineAcademicCap, HiOutlineBadgeCheck, HiOutlineChartBar, HiOutlineClipboardCheck } from 'react-icons/hi';
+import { getCertificateStatusBadge } from '../utils/statusHelper';
 import { Link } from 'react-router-dom';
 
 export default function FacultyDashboard() {
@@ -76,7 +77,10 @@ export default function FacultyDashboard() {
                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="font-medium text-sm text-gray-800">{e.fdpProgram?.title || 'FDP Program'}</p>
-                    <p className="text-xs text-gray-500">Progress: {e.progressPercentage || 0}%</p>
+                    <div className="flex gap-2 items-center mt-1">
+                        <p className="text-xs text-gray-500">Progress: {e.progressPercentage || 0}%</p>
+                        {e.fdpProgram?.college && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold">{e.fdpProgram.college.collegeCode}</span>}
+                    </div>
                   </div>
                   <div className="w-24 bg-gray-200 rounded-full h-2">
                     <div className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all" style={{ width: `${e.progressPercentage || 0}%` }} />
@@ -105,8 +109,8 @@ export default function FacultyDashboard() {
                     <Link to={`/verify-certificate/${c.certificateId}`} className="btn-secondary !py-1 !px-2.5 text-xs font-semibold">
                       View
                     </Link>
-                    <span className={`badge-${c.isOnChain ? 'success' : 'warning'}`}>
-                      {c.isOnChain ? 'On-Chain' : 'Pending'}
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getCertificateStatusBadge(c).color}`}>
+                      {getCertificateStatusBadge(c).label}
                     </span>
                   </div>
                 </div>

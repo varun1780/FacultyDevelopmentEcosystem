@@ -18,7 +18,7 @@ import {
   HiOutlineEye
 } from 'react-icons/hi';
 
-const CATEGORIES = ['Artificial Intelligence', 'Blockchain', 'Pedagogy', 'Research', 'Data Science', 'Cybersecurity'];
+
 const DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
 const STATUSES = ['Draft', 'Upcoming', 'Active', 'Completed'];
 
@@ -39,12 +39,14 @@ export default function AdminFdpEditorPage() {
   const [activeTab, setActiveTab] = useState('basic');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const saveTimeoutRef = useRef(null);
 
   const [fdp, setFdp] = useState(null);
   const [certTemplate, setCertTemplate] = useState(null);
   const [logoObjectUrl, setLogoObjectUrl] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   // Modals for editing nested arrays
   const [editingModule, setEditingModule] = useState(null);
@@ -55,8 +57,12 @@ export default function AdminFdpEditorPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await fdpAPI.getById(id);
+        const [res, catRes] = await Promise.all([
+          fdpAPI.getById(id),
+          fdpAPI.getCategories()
+        ]);
         const data = res.data;
+        setCategories(catRes.data);
         // Parse JSON fields
         const parsedModules = data.modules ? JSON.parse(data.modules) : [];
         const parsedQuizObj = data.quiz ? JSON.parse(data.quiz) : {};
@@ -225,6 +231,25 @@ export default function AdminFdpEditorPage() {
     }
   };
 
+  const handleGenerateAIQuiz = async () => {
+    setIsGeneratingQuiz(true);
+    const tid = toast.loading('Generating intelligent assessment...');
+    try {
+      const res = await fdpAPI.generateQuiz(id, 10);
+      if (res.data && res.data.questions) {
+        updateFdp({ quizzes: res.data.questions });
+        toast.success('AI Quiz generated successfully!', { id: tid });
+      } else {
+        toast.error('Failed to generate quiz format', { id: tid });
+      }
+    } catch (err) {
+      toast.error('Failed to generate AI Quiz', { id: tid });
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
+
+
   if (loading) return <div className="flex h-96 items-center justify-center"><div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div></div>;
   if (!fdp) return <div className="text-center text-red-500 mt-20">FDP Not Found</div>;
 
@@ -304,9 +329,10 @@ export default function AdminFdpEditorPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                      <select name="category" value={fdp.category} onChange={handleBasicChange} className="input-field">
-                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                      </select>
+                      <input list="category-list" name="category" value={fdp.category} onChange={handleBasicChange} className="input-field" placeholder="Select or type a category" />
+                      <datalist id="category-list">
+                        {categories.map(c => <option key={c} value={c} />)}
+                      </datalist>
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">Difficulty Level</label>
@@ -373,14 +399,24 @@ export default function AdminFdpEditorPage() {
                         <input type="number" name="passingScore" value={fdp.passingScore} onChange={handleBasicChange} className="input-field !w-24 !py-1" />
                       </div>
                     </div>
-                    <button onClick={() => setEditingQuiz({ 
-                      question: '', 
-                      options: ['', '', '', ''],
-                      correctAnswer: 0, 
-                      marks: 10 
-                    })} className="btn-primary !py-2 px-4 flex items-center gap-2">
-                      <HiOutlinePlus /> Add Question
-                    </button>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={handleGenerateAIQuiz} 
+                        disabled={isGeneratingQuiz}
+                        className="btn-secondary !py-2 px-4 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <span className="text-xl">✨</span>
+                        {isGeneratingQuiz ? 'Generating...' : 'Regenerate AI Quiz'}
+                      </button>
+                      <button onClick={() => setEditingQuiz({ 
+                        question: '', 
+                        options: ['', '', '', ''],
+                        correctAnswer: 0, 
+                        marks: 10 
+                      })} className="btn-primary !py-2 px-4 flex items-center gap-2">
+                        <HiOutlinePlus /> Add Question
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -730,11 +766,79 @@ export default function AdminFdpEditorPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Video URL (Optional)</label>
-                    <input type="text" value={editingModule.videoUrl || ''} onChange={e => setEditingModule({...editingModule, videoUrl: e.target.value})} className="input-field" />
+                    <input type="text" value={editingModule.videoUrl || ''} onChange={e => setEditingModule({...editingModule, videoUrl: e.target.value})} className="input-field" placeholder="YouTube or MP4 URL" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">PDF URL (Optional)</label>
-                    <input type="text" value={editingModule.pdfUrl || ''} onChange={e => setEditingModule({...editingModule, pdfUrl: e.target.value})} className="input-field" />
+                    <label className="block text-sm font-bold text-gray-700 mb-1">External Link (Optional)</label>
+                    <input type="text" value={editingModule.externalLinks || ''} onChange={e => setEditingModule({...editingModule, externalLinks: e.target.value})} className="input-field" placeholder="https://..." />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">PDF Notes</label>
+                    {editingModule.pdfUrl ? (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                        <HiOutlineCloudUpload className="text-emerald-500" />
+                        <span className="text-xs text-emerald-700 font-medium truncate flex-1">PDF uploaded</span>
+                        <button type="button" onClick={() => setEditingModule({...editingModule, pdfUrl: ''})} className="text-red-500 hover:text-red-700 text-xs font-bold">Remove</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all text-sm text-gray-500">
+                          <HiOutlineCloudUpload className="text-lg" />
+                          <span>Upload PDF</span>
+                          <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            try {
+                              const res = await fdpAPI.uploadPdf(formData);
+                              if (res.data.success) {
+                                setEditingModule(prev => ({...prev, pdfUrl: res.data.fileUrl}));
+                                toast.success('PDF uploaded successfully!');
+                              }
+                            } catch {
+                              toast.error('PDF upload failed');
+                            }
+                          }} />
+                        </label>
+                        <input type="text" value={editingModule.pdfUrl || ''} onChange={e => setEditingModule({...editingModule, pdfUrl: e.target.value})} className="input-field flex-1 !text-xs" placeholder="or paste URL" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Lecture Slides (PPT)</label>
+                    {editingModule.pptUrl ? (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                        <HiOutlineCloudUpload className="text-emerald-500" />
+                        <span className="text-xs text-emerald-700 font-medium truncate flex-1">Slides uploaded</span>
+                        <button type="button" onClick={() => setEditingModule({...editingModule, pptUrl: ''})} className="text-red-500 hover:text-red-700 text-xs font-bold">Remove</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all text-sm text-gray-500">
+                          <HiOutlineCloudUpload className="text-lg" />
+                          <span>Upload PPT</span>
+                          <input type="file" accept=".ppt,.pptx,.pdf" className="hidden" onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            try {
+                              const res = await fdpAPI.uploadPdf(formData);
+                              if (res.data.success) {
+                                setEditingModule(prev => ({...prev, pptUrl: res.data.fileUrl}));
+                                toast.success('Slides uploaded successfully!');
+                              }
+                            } catch {
+                              toast.error('Slides upload failed');
+                            }
+                          }} />
+                        </label>
+                        <input type="text" value={editingModule.pptUrl || ''} onChange={e => setEditingModule({...editingModule, pptUrl: e.target.value})} className="input-field flex-1 !text-xs" placeholder="or paste URL" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

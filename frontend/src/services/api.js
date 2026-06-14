@@ -1,9 +1,15 @@
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const AI_API_BASE = import.meta.env.VITE_AI_API || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export const aiAxios = axios.create({
+  baseURL: AI_API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -40,7 +46,14 @@ export const authAPI = {
 
 // FDP APIs
 export const fdpAPI = {
-  getAll: () => api.get('/fdp/all'),
+  getAll: (collegeId, category) => {
+    let url = '/fdp/all';
+    const params = new URLSearchParams();
+    if (collegeId) params.append('collegeId', collegeId);
+    if (category) params.append('category', category);
+    if (params.toString()) url += `?${params.toString()}`;
+    return api.get(url);
+  },
   getById: (id) => api.get(`/fdp/${id}`),
   create: (data) => api.post('/fdp/create', data),
   update: (id, data) => api.put(`/admin/fdp/update/${id}`, data),
@@ -50,7 +63,9 @@ export const fdpAPI = {
   getEnrolledFaculty: (id) => api.get(`/fdp/${id}/enrolled-faculty`),
   suggestVideo: (topic) => api.get(`/admin/fdp/suggest-video?topic=${encodeURIComponent(topic)}`),
   uploadVideo: (formData) => api.post('/upload/video', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadPdf: (formData) => api.post('/upload/pdf', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   generateModuleNotes: (title, fdpTitle) => api.post('/admin/fdp/generate-module-notes', { title, fdpTitle }),
+  getCategories: () => api.get('/categories'),
 };
 
 // Enrollment APIs
@@ -65,12 +80,14 @@ export const enrollmentAPI = {
 
 // AI APIs
 export const aiAPI = {
-  generateContent: (data) => api.post('/ai/generate-content', data),
-  generateQuiz: (data) => api.post('/ai/generate-quiz', data),
+  generateContent: (data) => aiAxios.post('/generate-content', data),
+  generateQuiz: (data) => aiAxios.post('/generate-quiz', data),
+  generateSummary: (data) => aiAxios.post('/generate-summary', data),
+  generateNotes: (data) => aiAxios.post('/generate-notes', data),
   evaluate: (data) => api.post('/ai/evaluate', data),
   recommend: (data) => api.post('/ai/recommend', data || {}),
   skillGap: (data) => api.post('/ai/skill-gap', data || {}),
-  chat: (message, context) => api.post('/ai/chatbot', { message, context }),
+  chat: (messages, courseContext) => aiAxios.post('/api/ai-mentor/chat', { messages, courseContext }),
 };
 
 // Certificate APIs
@@ -128,6 +145,16 @@ export const notificationAPI = {
   markAsRead: (id) => api.put(`/notifications/read/${id}`),
   markAllAsRead: () => api.put('/notifications/read/all'),
   create: (data) => api.post('/notifications', data),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  deleteAll: () => api.delete('/notifications/all'),
+};
+
+// College APIs
+export const collegeAPI = {
+  getAll: () => api.get('/colleges'),
+  getById: (id) => api.get(`/colleges/${id}`),
+  create: (data) => api.post('/colleges', data),
+  update: (id, data) => api.put(`/colleges/${id}`, data),
 };
 
 export default api;

@@ -13,6 +13,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Optional<Enrollment> findByUserIdAndFdpProgramId(Long userId, Long fdpId);
     long countByIsCompleted(Boolean isCompleted);
     long countByFdpProgramId(Long fdpId);
+    List<Enrollment> findByCollegeId(Long collegeId);
+    
+    List<Enrollment> findByFdpProgramCollegeId(Long collegeId);
+    long countByFdpProgramCollegeId(Long collegeId);
+    long countByFdpProgramCollegeIdAndIsCompleted(Long collegeId, Boolean isCompleted);
+
     @org.springframework.transaction.annotation.Transactional
     void deleteByFdpProgramId(Long fdpId);
 }

@@ -9,6 +9,8 @@ export default function AIContentPage() {
   const [level, setLevel] = useState('Intermediate');
   const [content, setContent] = useState(null);
   const [quiz, setQuiz] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [notes, setNotes] = useState(null);
   const [loading, setLoading] = useState('');
 
   const generateContent = async () => {
@@ -33,6 +35,28 @@ export default function AIContentPage() {
     finally { setLoading(''); }
   };
 
+  const generateSummary = async () => {
+    if (!topic.trim()) return toast.error('Enter a topic');
+    setLoading('summary');
+    try {
+      const res = await aiAPI.generateSummary({ topic, level });
+      setSummary(res.data.summary);
+      toast.success('Summary generated!');
+    } catch (e) { toast.error('Generation failed. Is the AI service running?'); }
+    finally { setLoading(''); }
+  };
+
+  const generateNotes = async () => {
+    if (!topic.trim()) return toast.error('Enter a topic');
+    setLoading('notes');
+    try {
+      const res = await aiAPI.generateNotes({ topic, level });
+      setNotes(res.data.notes);
+      toast.success('Notes generated!');
+    } catch (e) { toast.error('Generation failed. Is the AI service running?'); }
+    finally { setLoading(''); }
+  };
+
   return (
     <div className="space-y-6">
       <div><h1 className="page-title flex items-center gap-2"><HiSparkles className="text-primary-500" /> AI Content Generation</h1><p className="text-gray-500 mt-1">Generate course content and quizzes using AI</p></div>
@@ -45,6 +69,12 @@ export default function AIContentPage() {
           </button>
           <button onClick={generateQuiz} disabled={loading === 'quiz'} className="btn-secondary flex items-center gap-2">
             {loading === 'quiz' ? <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" /> : <HiOutlineClipboardCheck />} Generate Quiz
+          </button>
+          <button onClick={generateSummary} disabled={loading === 'summary'} className="btn-secondary flex items-center gap-2">
+            {loading === 'summary' ? <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" /> : <HiOutlineBookOpen />} Summary
+          </button>
+          <button onClick={generateNotes} disabled={loading === 'notes'} className="btn-secondary flex items-center gap-2">
+            {loading === 'notes' ? <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" /> : <HiOutlineLightBulb />} Notes
           </button>
         </div>
       </div>
@@ -73,6 +103,22 @@ export default function AIContentPage() {
               ))}</div>
             </div>
           ))}</div>
+        </div>
+      )}
+      {summary && (
+        <div className="card p-6 animate-slide-up">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><HiOutlineBookOpen className="text-primary-500" /> Topic Summary</h2>
+          <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 text-gray-700 whitespace-pre-wrap">
+            {summary}
+          </div>
+        </div>
+      )}
+      {notes && (
+        <div className="card p-6 animate-slide-up">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><HiOutlineLightBulb className="text-amber-500" /> Study Notes</h2>
+          <div className="bg-amber-50/50 rounded-xl p-5 border border-amber-100 text-gray-800 font-mono text-sm whitespace-pre-wrap">
+            {notes}
+          </div>
         </div>
       )}
     </div>

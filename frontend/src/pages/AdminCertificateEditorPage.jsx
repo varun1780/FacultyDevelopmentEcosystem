@@ -12,6 +12,7 @@ import {
   HiOutlineDocumentText
 } from 'react-icons/hi';
 import { QRCodeSVG } from 'qrcode.react';
+import CertificateTemplate from '../components/CertificateTemplate';
 
 export default function AdminCertificateEditorPage() {
   const { user } = useAuth();
@@ -45,6 +46,27 @@ export default function AdminCertificateEditorPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth - 32; // account for padding
+        const newScale = Math.min(0.85, containerWidth / 1123);
+        setScale(newScale);
+      }
+    };
+    // Delay to ensure layout is ready
+    const timer = setTimeout(updateScale, 100);
+    window.addEventListener('resize', updateScale);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateScale);
+    };
+  }, []);
+
   const fileInputLogoRef = useRef(null);
   const fileInputPrincipalRef = useRef(null);
   const fileInputHodRef = useRef(null);
@@ -170,6 +192,23 @@ export default function AdminCertificateEditorPage() {
       default:
         return 'none';
     }
+  };
+
+  const previewCert = {
+    certificateId: certificateData?.certificateId,
+    issuedAt: certificateData?.completionDate ? new Date(certificateData.completionDate).toISOString() : new Date().toISOString(),
+    quizScore: certificateData?.score,
+    fdpProgram: { 
+      title: certificateData?.courseName, 
+      instructorName: certificateData?.instructorName 
+    },
+    isOnChain: true,
+    txHash: '0x8a92...b5f8',
+    status: 'ISSUED'
+  };
+
+  const previewUser = {
+    name: certificateData?.facultyName
   };
 
   return (
@@ -511,113 +550,35 @@ export default function AdminCertificateEditorPage() {
               <HiOutlineEye className="text-primary-500" /> Live Canvas Preview
             </h3>
 
-            {/* Wrapper to scale and display the certificate preview sheet */}
-            <div className="border border-gray-200 rounded-2xl bg-gray-100 p-4 flex items-center justify-center overflow-x-auto shadow-inner min-h-[460px]">
-              <div 
-                id="certificate-preview-canvas"
-                className={`w-[720px] h-[510px] p-10 flex flex-col justify-between relative shadow-2xl transition-all duration-300 ${fontClass}`}
+            {/* Wrapper: scroll-able, no overflow:hidden, dynamically sized */}
+            <div
+              ref={containerRef}
+              className="border border-gray-200 rounded-2xl bg-gray-100 p-4 shadow-inner overflow-auto"
+              style={{ width: '100%' }}
+            >
+              {/* Spacer div that matches the scaled height so the container doesn't collapse */}
+              <div
                 style={{
-                  background: template.backgroundUrl 
-                    ? `url(${template.backgroundUrl}) no-repeat center center/cover` 
-                    : 'linear-gradient(180deg, #fffdf8 0%, #fff9ee 100%)',
-                  border: getBorderStyle(),
-                  color: template.textColor,
+                  position: 'relative',
+                  width: `${1123 * scale}px`,
+                  height: `${794 * scale}px`,
+                  margin: '0 auto',
+                  overflow: 'visible',
                 }}
               >
-                {/* Corner Accents */}
-                <div className="absolute top-2 left-2 w-12 h-12 border-t-2 border-l-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                <div className="absolute top-2 right-2 w-12 h-12 border-t-2 border-r-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                <div className="absolute bottom-2 left-2 w-12 h-12 border-b-2 border-l-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-                <div className="absolute bottom-2 right-2 w-12 h-12 border-b-2 border-r-2 opacity-30" style={{ borderColor: template.primaryColor }}></div>
-
-                {/* College Logo & Headers */}
-                <div className="text-center space-y-2">
-                  <div className="flex items-center justify-center gap-4">
-                    {template.logoUrl ? (
-                      <img src={template.logoUrl} alt="Logo" className="w-14 h-14 object-contain" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-200/80 flex items-center justify-center text-[10px] text-gray-400 font-bold border border-dashed border-gray-300">LOGO</div>
-                    )}
-                    <div className="text-left">
-                      <h2 className="text-lg font-bold tracking-wide uppercase select-none leading-tight">{template.collegeName}</h2>
-                      <p className="text-xs opacity-75 font-medium">{template.departmentName}</p>
-                    </div>
-                  </div>
-                  <div className="w-24 h-0.5 mx-auto my-3" style={{ background: `linear-gradient(90deg, ${template.primaryColor}, ${template.secondaryColor})` }}></div>
+                <div
+                  style={{
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    width: '1123px',
+                    height: '794px',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                  }}
+                >
+                  <CertificateTemplate cert={previewCert} user={previewUser} templateSettings={template} />
                 </div>
-
-                {/* Certificate Title */}
-                <div className="text-center space-y-1">
-                  <span className="text-[10px] font-bold tracking-widest uppercase select-none" style={{ color: template.primaryColor }}>CERTIFICATE OF PARTICIPATION</span>
-                  <h1 className="text-2xl font-bold tracking-wide font-serif">Completion Award</h1>
-                </div>
-
-                {/* Certificate Body Text */}
-                <div className="text-center px-6 my-2">
-                  <p 
-                    className="text-sm leading-relaxed" 
-                    dangerouslySetInnerHTML={{ __html: renderCertificateText(template.certificateText) }}
-                  />
-                </div>
-
-                {/* Date & Verification IDs */}
-                <div className="grid grid-cols-3 items-end gap-2 text-center text-[10px]">
-                  <div className="text-left pl-4 space-y-1">
-                    <p className="opacity-50 select-none text-[8px] uppercase tracking-wider">Date Issued</p>
-                    <p className="font-semibold">{certificateData?.completionDate || 'Completion Date'}</p>
-                    <p className="opacity-50 select-none text-[8px] uppercase tracking-wider mt-1">Certificate ID</p>
-                    <p className="font-mono font-bold" style={{ color: template.primaryColor }}>{certificateData?.certificateId || 'Certificate ID'}</p>
-                  </div>
-                  
-                  {/* QR code verification preview */}
-                  <div className="flex flex-col items-center justify-center">
-                    {template.enableQr ? (
-                      <div className="p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-                        <QRCodeSVG value={`${window.location.origin}/verify-certificate/${certificateData?.certificateId || ''}`} size={50} />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-150 rounded border border-dashed flex items-center justify-center text-[8px] text-gray-400">QR disabled</div>
-                    )}
-                    <span className="text-[8px] mt-1 opacity-50 select-none">Scan to Verify</span>
-                  </div>
-
-                  <div className="text-right pr-4 space-y-1">
-                    <p className="opacity-50 select-none text-[8px] uppercase tracking-wider">Verification Ledger</p>
-                    <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[8px] font-bold border border-emerald-100">Verified</span>
-                    {template.enableBlockchain && (
-                      <span className="block text-[8px] font-mono text-primary-500 truncate mt-1">TX: 0x8a92...b5f8</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Signatures */}
-                <div className="border-t border-gray-200/60 pt-4 grid grid-cols-3 gap-2 text-center">
-                  <div className="flex flex-col items-center justify-end">
-                    {template.principalSignatureUrl ? (
-                      <img src={template.principalSignatureUrl} alt="Principal Signature" className="h-8 object-contain" />
-                    ) : (
-                      <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1 flex items-center justify-center text-[8px] text-gray-300">Principal</div>
-                    )}
-                    <p className="text-[9px] font-semibold opacity-85">Principal</p>
-                  </div>
-                  <div className="flex flex-col items-center justify-end">
-                    {template.hodSignatureUrl ? (
-                      <img src={template.hodSignatureUrl} alt="HOD Signature" className="h-8 object-contain" />
-                    ) : (
-                      <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1 flex items-center justify-center text-[8px] text-gray-300">HOD</div>
-                    )}
-                    <p className="text-[9px] font-semibold opacity-85">Head of Dept.</p>
-                  </div>
-                  <div className="flex flex-col items-center justify-end">
-                    {template.coordinatorSignatureUrl ? (
-                      <img src={template.coordinatorSignatureUrl} alt="Coordinator Signature" className="h-8 object-contain" />
-                    ) : (
-                      <div className="h-6 w-16 border-b border-dashed border-gray-300 mb-1 flex items-center justify-center text-[8px] text-gray-300">Coordinator</div>
-                    )}
-                    <p className="text-[9px] font-semibold opacity-85">FDP Coordinator</p>
-                  </div>
-                </div>
-
               </div>
             </div>
 

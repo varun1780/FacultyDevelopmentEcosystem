@@ -20,20 +20,25 @@ public class NotificationService {
     }
 
     public Notification createNotification(String title, String message, String type, String role, Long userId) {
+        return createNotification(title, message, type, role, userId, null);
+    }
+
+    public Notification createNotification(String title, String message, String type, String role, Long userId, Long collegeId) {
         Notification notification = new Notification();
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setType(type);
         notification.setRole(role);
         notification.setUserId(userId);
+        notification.setCollegeId(collegeId);
         notification.setIsRead(false);
         notification.setCreatedAt(LocalDateTime.now());
         return notificationRepository.save(notification);
     }
 
     @Transactional(readOnly = true)
-    public List<Notification> getNotificationsForUser(Long userId, String role) {
-        return notificationRepository.findForUser(userId, role);
+    public List<Notification> getNotificationsForUser(Long userId, String role, Long collegeId) {
+        return notificationRepository.findForUser(userId, role, collegeId);
     }
 
     public Notification markAsRead(Long id) {
@@ -46,11 +51,20 @@ public class NotificationService {
         return null;
     }
 
-    public void markAllAsRead(Long userId, String role) {
-        List<Notification> unread = notificationRepository.findForUserAndStatus(userId, role, false);
+    public void markAllAsRead(Long userId, String role, Long collegeId) {
+        List<Notification> unread = notificationRepository.findForUserAndStatus(userId, role, collegeId, false);
         for (Notification n : unread) {
             n.setIsRead(true);
         }
         notificationRepository.saveAll(unread);
+    }
+
+    public void deleteNotification(Long id) {
+        notificationRepository.deleteById(id);
+    }
+
+    public void deleteAllForUser(Long userId, String role, Long collegeId) {
+        List<Notification> all = notificationRepository.findForUser(userId, role, collegeId);
+        notificationRepository.deleteAll(all);
     }
 }

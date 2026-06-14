@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fdpAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineSparkles, HiOutlineDocumentAdd, HiOutlineAcademicCap } from 'react-icons/hi';
 
-const CATEGORIES = ['Artificial Intelligence', 'Blockchain', 'Pedagogy', 'Research', 'Data Science', 'Cybersecurity'];
+
 const DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function AdminCreateFDPPage() {
@@ -14,6 +14,11 @@ export default function AdminCreateFDPPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('ai');
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fdpAPI.getCategories().then(res => setCategories(res.data)).catch(console.error);
+  }, []);
 
   const [aiForm, setAiForm] = useState({
     topic: '',
@@ -38,7 +43,13 @@ export default function AdminCreateFDPPage() {
     setLoading(true);
     const tid = toast.loading('AI is drafting your FDP curriculum...');
     try {
-      const payload = { ...aiForm, title: aiForm.topic, mode: 'ai', status: 'Draft' };
+      const payload = { 
+        ...aiForm, 
+        title: aiForm.topic, 
+        mode: 'ai', 
+        status: 'Draft',
+        college: user?.collegeId ? { id: user.collegeId } : null
+      };
       const res = await fdpAPI.create(payload);
       toast.success('AI Draft Generated!', { id: tid });
       navigate(`/admin/edit-fdp/${res.data.id}`);
@@ -56,7 +67,12 @@ export default function AdminCreateFDPPage() {
     setLoading(true);
     const tid = toast.loading('Creating blank draft...');
     try {
-      const payload = { ...blankForm, mode: 'manual', status: 'Draft' };
+      const payload = { 
+        ...blankForm, 
+        mode: 'manual', 
+        status: 'Draft',
+        college: user?.collegeId ? { id: user.collegeId } : null
+      };
       const res = await fdpAPI.create(payload);
       toast.success('Draft Created!', { id: tid });
       navigate(`/admin/edit-fdp/${res.data.id}`);
@@ -124,9 +140,10 @@ export default function AdminCreateFDPPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                <select name="category" value={aiForm.category} onChange={handleAiChange} className="input-field">
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <input list="category-list" name="category" value={aiForm.category} onChange={handleAiChange} className="input-field" placeholder="Select or type a category" />
+                <datalist id="category-list">
+                  {categories.map(c => <option key={c} value={c} />)}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Difficulty Level</label>
@@ -164,9 +181,7 @@ export default function AdminCreateFDPPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                <select name="category" value={blankForm.category} onChange={handleBlankChange} className="input-field">
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <input list="category-list" name="category" value={blankForm.category} onChange={handleBlankChange} className="input-field" placeholder="Select or type a category" />
               </div>
               <div className="pt-4">
                 <button type="submit" disabled={loading} className="btn-primary bg-gray-800 hover:bg-gray-900 border-gray-800 w-full py-4 text-lg font-bold shadow-lg">

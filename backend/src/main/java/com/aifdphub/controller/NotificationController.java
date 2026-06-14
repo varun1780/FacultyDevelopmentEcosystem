@@ -34,7 +34,8 @@ public class NotificationController {
         User user = getAuthenticatedUser(auth);
         if (user == null) return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
 
-        List<Notification> notifications = notificationService.getNotificationsForUser(user.getId(), user.getRole());
+        Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
+        List<Notification> notifications = notificationService.getNotificationsForUser(user.getId(), user.getRole(), collegeId);
         return ResponseEntity.ok(notifications);
     }
 
@@ -45,12 +46,13 @@ public class NotificationController {
         String type = (String) payload.get("type");
         String role = (String) payload.get("role");
         Long userId = payload.get("userId") != null ? Long.valueOf(payload.get("userId").toString()) : null;
+        Long collegeId = payload.get("collegeId") != null ? Long.valueOf(payload.get("collegeId").toString()) : null;
 
         if (title == null || title.isBlank() || message == null || message.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Title and message are required"));
         }
 
-        Notification notification = notificationService.createNotification(title, message, type, role, userId);
+        Notification notification = notificationService.createNotification(title, message, type, role, userId, collegeId);
         return ResponseEntity.ok(notification);
     }
 
@@ -71,7 +73,8 @@ public class NotificationController {
         User user = getAuthenticatedUser(auth);
         if (user == null) return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
 
-        notificationService.markAllAsRead(user.getId(), user.getRole());
+        Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
+        notificationService.markAllAsRead(user.getId(), user.getRole(), collegeId);
         return ResponseEntity.ok(Map.of("message", "All notifications marked as read"));
     }
 
@@ -83,5 +86,24 @@ public class NotificationController {
     @PatchMapping("/read-all")
     public ResponseEntity<?> markAllAsReadPatch(Authentication auth) {
         return markAllAsRead(auth);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id, Authentication auth) {
+        User user = getAuthenticatedUser(auth);
+        if (user == null) return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
+
+        notificationService.deleteNotification(id);
+        return ResponseEntity.ok(Map.of("message", "Notification deleted"));
+    }
+
+    @DeleteMapping("/all")
+    public ResponseEntity<?> deleteAll(Authentication auth) {
+        User user = getAuthenticatedUser(auth);
+        if (user == null) return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
+
+        Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
+        notificationService.deleteAllForUser(user.getId(), user.getRole(), collegeId);
+        return ResponseEntity.ok(Map.of("message", "All notifications deleted"));
     }
 }

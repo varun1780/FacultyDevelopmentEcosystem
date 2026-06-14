@@ -24,6 +24,10 @@ public class Enrollment {
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private FdpProgram fdpProgram;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "college_id")
+    private College college;
+
     private Integer progressPercentage = 0;
     private Integer completedModules = 0;
     private Double quizScore = 0.0;
@@ -31,6 +35,9 @@ public class Enrollment {
     private Boolean assignmentSubmitted = false;
     private Double assignmentScore = 0.0;
     private Boolean isCompleted = false;
+    
+    private String completionStatus = "IN_PROGRESS";
+    private Boolean certificateGenerated = false;
 
     @Column(columnDefinition = "TEXT")
     private String quizAnswers; // JSON of submitted answers

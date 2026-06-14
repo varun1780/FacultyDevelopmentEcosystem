@@ -63,9 +63,9 @@ public class CertificateService {
             Map<String, Object> flatMap = new HashMap<>();
             if (activeTemplate.isPresent()) {
                 CertificateTemplate t = activeTemplate.get();
-                flatMap.put("collegeName", t.getInstitutionName() != null ? t.getInstitutionName() : "National Institute of Technology");
+                flatMap.put("collegeName", t.getInstitutionName() != null ? t.getInstitutionName() : (fdp.getCollege() != null ? fdp.getCollege().getCollegeName() : "National Institute of Technology"));
                 flatMap.put("departmentName", t.getInstitutionSubtitle() != null ? t.getInstitutionSubtitle() : "Department of Computer Science & Engineering");
-                flatMap.put("logoUrl", t.getLogo() != null ? t.getLogo() : "");
+                flatMap.put("logoUrl", t.getLogo() != null ? t.getLogo() : (fdp.getCollege() != null ? fdp.getCollege().getLogo() : ""));
                 flatMap.put("backgroundUrl", t.getBackgroundImage() != null ? t.getBackgroundImage() : "");
                 flatMap.put("borderStyle", t.getBorderStyle() != null ? t.getBorderStyle() : "double");
                 flatMap.put("fontFamily", "serif");
@@ -105,13 +105,13 @@ public class CertificateService {
                     flatMap.put("textColor", "#1a1a2e");
                 }
             } else {
-                // Default settings fallback
-                flatMap.put("collegeName", "National Institute of Technology");
+                // Default settings fallback using College if available
+                flatMap.put("collegeName", fdp.getCollege() != null ? fdp.getCollege().getCollegeName() : "National Institute of Technology");
                 flatMap.put("departmentName", "Department of Computer Science & Engineering");
-                flatMap.put("logoUrl", "");
+                flatMap.put("logoUrl", fdp.getCollege() != null ? fdp.getCollege().getLogo() : "");
                 flatMap.put("backgroundUrl", "");
-                flatMap.put("principalSignatureUrl", "");
-                flatMap.put("hodSignatureUrl", "");
+                flatMap.put("principalSignatureUrl", fdp.getCollege() != null ? fdp.getCollege().getPrincipalSignature() : "");
+                flatMap.put("hodSignatureUrl", fdp.getCollege() != null ? fdp.getCollege().getHodSignature() : "");
                 flatMap.put("coordinatorSignatureUrl", "");
                 flatMap.put("borderStyle", "double");
                 flatMap.put("fontFamily", "serif");
@@ -133,6 +133,7 @@ public class CertificateService {
         certificate.setCertificateId(certificateId);
         certificate.setUser(user);
         certificate.setFdpProgram(fdp);
+        certificate.setCollege(fdp.getCollege());
         certificate.setCertificateHash(certificateHash);
         certificate.setTemplateSettings(templateJson);
         certificate.setIsOnChain(false);
@@ -183,6 +184,7 @@ public class CertificateService {
         result.put("facultyEmail", cert.getUser().getEmail());
         result.put("fdpName", cert.getFdpProgram().getTitle());
         result.put("fdpCategory", cert.getFdpProgram().getCategory());
+        result.put("collegeName", cert.getCollege() != null ? cert.getCollege().getCollegeName() : null);
         result.put("certificateHash", cert.getCertificateHash());
         result.put("txHash", cert.getTxHash());
         result.put("ipfsUrl", cert.getIpfsUrl());
@@ -202,11 +204,14 @@ public class CertificateService {
     }
 
     /**
-    /**
      * Get all certificates for a user, or all certificates on the platform if userId is null or 0.
+     * Filter by collegeId if provided.
      */
-    public List<Certificate> getUserCertificates(Long userId) {
+    public List<Certificate> getUserCertificates(Long userId, Long collegeId) {
         if (userId == null || userId == 0) {
+            if (collegeId != null) {
+                return certificateRepository.findByCollegeId(collegeId);
+            }
             return certificateRepository.findAll();
         }
         return certificateRepository.findByUserId(userId);

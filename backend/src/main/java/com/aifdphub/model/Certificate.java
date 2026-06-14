@@ -27,6 +27,10 @@ public class Certificate {
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private FdpProgram fdpProgram;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "college_id")
+    private College college;
+
     @Column(nullable = false)
     private String certificateHash;
 
@@ -35,6 +39,12 @@ public class Certificate {
     private String ipfsUrl;
     private Boolean isOnChain = false;
     private Boolean isValid = true;
+    
+    private String status = "ISSUED";
+    private String verificationCode;
+    
+    @Column(columnDefinition = "TEXT")
+    private String certificateUrl;
 
     @Lob
     @Column(columnDefinition = "LONGTEXT")

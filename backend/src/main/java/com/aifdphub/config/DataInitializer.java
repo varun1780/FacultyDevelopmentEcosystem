@@ -9,6 +9,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.aifdphub.model.College;
+import com.aifdphub.model.FdpProgram;
+import com.aifdphub.repository.CollegeRepository;
+import com.aifdphub.repository.FdpRepository;
 
 /**
  * Seeds initial admin account for first-time setup.
@@ -21,23 +25,9 @@ public class DataInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     @Bean
-    CommandLineRunner initData(UserRepository userRepository, NotificationRepository notificationRepository, PasswordEncoder encoder) {
+    CommandLineRunner initData(UserRepository userRepository, NotificationRepository notificationRepository, PasswordEncoder encoder, CollegeRepository collegeRepository, FdpRepository fdpRepository) {
         return args -> {
-            if (userRepository.count() == 0) {
-                // Create bootstrap admin user for first-time setup
-                User admin = new User();
-                admin.setName("System Admin");
-                admin.setEmail("admin@fdphub.com");
-                admin.setPassword(encoder.encode("admin123"));
-                admin.setRole("ADMIN");
-                admin.setDepartment("Administration");
-                admin.setDesignation("Platform Administrator");
-                userRepository.save(admin);
-
-                log.info("✅ Created bootstrap admin user (admin@fdphub.com)");
-            } else {
-                log.info("✅ Database already contains {} user(s) — skipping seed", userRepository.count());
-            }
+            log.info("✅ DataInitializer: No demo data seeded. System is running in fully dynamic production mode.");
         };
     }
 }

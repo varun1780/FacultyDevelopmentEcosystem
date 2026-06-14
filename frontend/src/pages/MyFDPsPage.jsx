@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { enrollmentAPI } from '../services/api';
 import { Link } from 'react-router-dom';
 import { HiOutlineAcademicCap } from 'react-icons/hi';
+import { ShareFDPButton } from '../components/ShareFDPModal';
 
 export default function MyFDPsPage() {
   const { user } = useAuth();
@@ -30,7 +31,10 @@ export default function MyFDPsPage() {
               </div>
               <p className="text-sm text-gray-500 mb-3">{e.fdpProgram?.category} • Quiz Score: {e.quizScore || 0}%</p>
               <div className="mb-3"><div className="flex justify-between text-xs text-gray-500 mb-1"><span>Progress</span><span>{e.progressPercentage || 0}%</span></div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full" style={{ width: `${e.progressPercentage || 0}%` }} /></div></div>
-              <Link to={`/fdp/${e.fdpProgram?.id}`} className="btn-ghost text-sm text-primary-600">View Details →</Link>
+              <div className="flex items-center gap-2">
+                <Link to={`/fdp/${e.fdpProgram?.id}`} className="btn-ghost text-sm text-primary-600">View Details →</Link>
+                {e.fdpProgram && <ShareFDPButton fdp={e.fdpProgram} size="sm" />}
+              </div>
             </div>
           ))}
         </div>

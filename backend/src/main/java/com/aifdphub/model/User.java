@@ -61,6 +61,15 @@ public class User {
     @Column(columnDefinition = "LONGTEXT")
     private String coverBanner;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "college_id")
+    private College college;
+
+    @Transient
+    public Long getCollegeId() {
+        return college != null ? college.getId() : null;
+    }
+
     private Boolean twoFactorEnabled = false;
 
     @ElementCollection(fetch = FetchType.EAGER)

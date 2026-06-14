@@ -11,4 +11,10 @@ public interface FdpRepository extends JpaRepository<FdpProgram, Long> {
     List<FdpProgram> findByCategory(String category);
     long countByStatus(String status);
     List<FdpProgram> findAllByOrderByCreatedAtDesc();
+    List<FdpProgram> findByCollegeId(Long collegeId);
+    List<FdpProgram> findByCollegeIdAndStatus(Long collegeId, String status);
+    long countByCollegeId(Long collegeId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT f.category FROM FdpProgram f WHERE f.category IS NOT NULL AND f.category != ''")
+    List<String> findDistinctCategories();
 }

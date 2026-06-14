@@ -25,6 +25,10 @@ export default function AdminRegisterPage() {
     department: '',
     designation: '',
     role: 'ADMIN',
+    collegeName: '',
+    collegeCode: '',
+    website: '',
+    principalName: '',
   });
 
   const [profileImage, setProfileImage] = useState(null);
@@ -106,6 +110,9 @@ export default function AdminRegisterPage() {
 
     if (!form.department.trim()) newErrors.department = 'Department is required';
     if (!form.designation.trim()) newErrors.designation = 'Designation is required';
+    if (!form.collegeName.trim()) newErrors.collegeName = 'College Name is required';
+    if (!form.collegeCode.trim()) newErrors.collegeCode = 'College Code is required';
+    if (!form.principalName.trim()) newErrors.principalName = 'Principal Name is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -127,6 +134,10 @@ export default function AdminRegisterPage() {
         department: form.department.trim(),
         designation: form.designation.trim(),
         role: 'ADMIN',
+        collegeName: form.collegeName.trim(),
+        collegeCode: form.collegeCode.trim(),
+        website: form.website.trim(),
+        principalName: form.principalName.trim(),
       };
 
       // Include profile photo if selected
@@ -415,6 +426,62 @@ export default function AdminRegisterPage() {
                   />
                 </div>
                 <FieldError field="designation" />
+              </div>
+            </div>
+
+            {/* College Details */}
+            <div className="pt-4 border-t border-gray-200 mt-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Institution Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">College Name *</label>
+                  <input
+                    name="collegeName"
+                    type="text"
+                    value={form.collegeName}
+                    onChange={handleChange}
+                    placeholder="e.g. KLE Technological University"
+                    className={`input-field ${errors.collegeName ? '!border-red-400 !ring-red-200' : ''}`}
+                  />
+                  <FieldError field="collegeName" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">College Code *</label>
+                  <input
+                    name="collegeCode"
+                    type="text"
+                    value={form.collegeCode}
+                    onChange={handleChange}
+                    placeholder="e.g. COLLEGE-01"
+                    className={`input-field ${errors.collegeCode ? '!border-red-400 !ring-red-200' : ''}`}
+                  />
+                  <FieldError field="collegeCode" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Website</label>
+                  <input
+                    name="website"
+                    type="url"
+                    value={form.website}
+                    onChange={handleChange}
+                    placeholder="https://..."
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Principal Name *</label>
+                  <input
+                    name="principalName"
+                    type="text"
+                    value={form.principalName}
+                    onChange={handleChange}
+                    placeholder="Dr. John Doe"
+                    className={`input-field ${errors.principalName ? '!border-red-400 !ring-red-200' : ''}`}
+                  />
+                  <FieldError field="principalName" />
+                </div>
               </div>
             </div>
 

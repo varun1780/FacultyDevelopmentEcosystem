@@ -2,9 +2,8 @@ import os
 import json
 import logging
 import re
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,20 +11,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI FDP Hub - AI Service")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("AI Service Running on Port 8000")
-    print("AI Service Running on Port 8000")
+app = Flask("AI FDP Hub - AI Service")
+CORS(app)
 
 ai_provider = None
 gemini_model = None
@@ -269,16 +256,16 @@ By understanding the mechanics of {key_term}, faculty can design better curricul
         ]
     }
 
-@app.post("/api/ai/ai-generate")
-async def ai_generate_fdp(request: Request):
-    data = await request.json()
+@app.route("/api/ai/ai-generate", methods=["POST"])
+def ai_generate_fdp():
+    data = request.json
     topic = data.get("topic", "Advanced Technology")
     category = data.get("category", "General")
     difficulty = data.get("difficulty", "Intermediate")
     duration = data.get("duration", "4 Weeks")
     
     if not ai_provider: 
-        return generate_fallback_fdp_outline(topic, category, difficulty, duration)
+        return jsonify(generate_fallback_fdp_outline(topic, category, difficulty, duration))
 
     system_prompt = """You are a world-class academic curriculum designer and expert professor designing a Faculty Development Program (FDP).
 Your job is to generate highly realistic, deeply educational, and uniquely customized course content based on the requested topic.
@@ -338,15 +325,15 @@ You MUST return a valid JSON object strictly matching this schema:
     parsed = parse_json_response(res)
     
     if parsed and "modules" in parsed: 
-        return parsed
+        return jsonify(parsed)
         
     logger.warning("AI generation failed or returned invalid JSON. Falling back.")
-    return generate_fallback_fdp_outline(topic, category, difficulty, duration)
+    return jsonify(generate_fallback_fdp_outline(topic, category, difficulty, duration))
 
 
-@app.post("/api/ai/generate-quiz")
-async def ai_generate_quiz(request: Request):
-    data = await request.json()
+@app.route("/api/ai/generate-quiz", methods=["POST"])
+def ai_generate_quiz():
+    data = request.json
     topic = data.get("topic", "Advanced Technology")
     category = data.get("category", "General")
     difficulty = data.get("difficulty", "Intermediate")
@@ -355,7 +342,7 @@ async def ai_generate_quiz(request: Request):
     learning_content = data.get("learningContent", "Core principles and applications")
 
     if not ai_provider: 
-        return JSONResponse(status_code=500, content={"error": "No AI provider configured"})
+        return jsonify({"error": "No AI provider configured"}), 500
 
     system_prompt = f"""You are a world-class academic curriculum designer and expert professor designing a Quiz for a Faculty Development Program (FDP).
 Your job is to generate highly realistic, deeply educational, and uniquely customized questions based on the ACTUAL course content provided.
@@ -406,95 +393,15 @@ Learning Content:
     parsed = parse_json_response(res)
     
     if parsed and "questions" in parsed: 
-        return parsed
+        return jsonify(parsed)
         
     logger.warning("AI quiz generation failed or returned invalid JSON.")
-    return JSONResponse(status_code=500, content={"error": "Failed to generate valid quiz JSON"})
+    return jsonify({"error": "Failed to generate valid quiz JSON"}), 500
 
 
-
-@app.post("/generate-content")
-async def generate_content_endpoint(request: Request):
-    return await ai_generate_fdp(request)
-
-@app.post("/generate-quiz")
-async def generate_quiz_endpoint(request: Request):
-    return await ai_generate_quiz(request)
-
-@app.post("/generate-summary")
-async def generate_summary(request: Request):
-    data = await request.json()
-    topic = data.get("topic", "Topic")
-    if not ai_provider: return {"summary": f"This is a fallback summary for {topic}."}
-    system_prompt = 'Return a JSON object: {"summary": "String"}'
-    prompt = f"Generate a concise 2-paragraph academic summary about: {topic}"
-    res = call_ai(prompt, system_prompt, 1000)
-    parsed = parse_json_response(res)
-    return parsed if parsed else {"summary": f"Could not generate summary for {topic}."}
-
-@app.post("/generate-notes")
-async def generate_notes(request: Request):
-    data = await request.json()
-    topic = data.get("topic", "Topic")
-    if not ai_provider: return {"notes": f"# Notes on {topic}\n\n- Key point 1"}
-    system_prompt = 'Return a JSON object: {"notes": "String (Markdown format)"}'
-    prompt = f"Generate comprehensive study notes in Markdown format for: {topic}"
-    res = call_ai(prompt, system_prompt, 2000)
-    parsed = parse_json_response(res)
-    return parsed if parsed else {"notes": f"# Notes on {topic}\nFailed to generate."}
-
-@app.post("/api/ai-mentor/chat")
-async def ai_mentor_chat(request: Request):
-    data = await request.json()
-    messages = data.get("messages", [])
-    course_context = data.get("courseContext", "General Faculty Development")
-    
-    if not ai_provider:
-        # Fallback if no AI provider configured
-        return {"reply": f"Based on your profile, I recommend exploring advanced topics in {course_context}."}
-
-    system_prompt = f"""You are an intelligent AI mentor for faculty development programs.
-Help faculty members with:
-- AI and Data Science concepts
-- Teaching methodologies
-- Research guidance
-- FDP recommendations
-- Assessment help
-
-The user is currently studying or inquiring about: {course_context}
-Keep your responses professional, academic, concise and directly helpful.
-Do not use markdown wrappers for the final JSON output.
-Return ONLY a valid JSON object in this format: {{"reply": "Your response string here"}}"""
-
-    # Format history for prompt
-    chat_history = ""
-    for msg in messages:
-        role = "User" if msg.get("role") == "user" else "AI"
-        chat_history += f"{role}: {msg.get('content')}\n\n"
-
-    prompt = f"Chat History:\n{chat_history}\nGenerate the next AI response."
-    
-    res = call_ai(prompt, system_prompt, 2000)
-    parsed = parse_json_response(res)
-    
-    if parsed and "reply" in parsed:
-        return parsed
-    
-    # Try raw text if json parsing fails
-    if res:
-        # Strip json block formatting just in case
-        clean = res.strip()
-        if clean.startswith("```json"): clean = clean[7:]
-        if clean.startswith("```"): clean = clean[3:]
-        if clean.endswith("```"): clean = clean[:-3]
-        return {"reply": clean.strip()}
-
-    return {"reply": "I am temporarily unavailable. Please try again later."}
-
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health():
-    return {"status": "healthy", "ai_provider": ai_provider or "none", "service": "AI FDP Hub FastAPI (Dynamic V3)"}
+    return jsonify({"status": "healthy", "ai_provider": ai_provider or "none", "service": "AI FDP Hub Flask (Dynamic V2.1)"})
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=8000)

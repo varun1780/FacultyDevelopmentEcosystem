@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { fdpAPI } from '../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { ShareFDPButton } from '../components/ShareFDPModal';
 
 export default function AdminFDPsPage() {
   const [fdps, setFdps] = useState([]);
@@ -69,7 +70,13 @@ export default function AdminFDPsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between"><h1 className="page-title">Manage FDPs</h1><Link to="/admin/create-fdp" className="btn-primary">+ Create FDP</Link></div>
-      {fdps.length === 0 ? <p className="text-gray-400 text-center py-16">No FDPs yet</p> : (
+      {fdps.length === 0 ? (
+        <div className="card flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-gray-500 font-medium mb-1">No FDP programs created yet.</p>
+          <p className="text-gray-400 text-sm mb-6">Create your first FDP to get started.</p>
+          <Link to="/admin/create-fdp" className="btn-primary">+ Create FDP</Link>
+        </div>
+      ) : (
         <div className="card overflow-hidden"><table className="w-full text-sm"><thead className="bg-gray-50"><tr>{['Title', 'Category', 'Status', 'Enrolled', 'Actions'].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{fdps.map(f => (
           <tr key={f.id} className="hover:bg-gray-50"><td className="px-4 py-3 font-medium">{f.title}</td><td className="px-4 py-3 text-gray-500">{f.category}</td><td className="px-4 py-3"><span className={`badge-${f.status === 'Active' ? 'success' : f.status === 'Completed' ? 'info' : 'warning'}`}>{f.status}</span></td><td className="px-4 py-3 text-gray-500">{f.enrolledCount || 0}/{f.maxSeats || '∞'}</td>
           <td className="px-4 py-3 flex gap-3 items-center">
@@ -94,6 +101,7 @@ export default function AdminFDPsPage() {
               ) : 'AI Content'}
             </button>
             <button onClick={() => handleDelete(f.id)} className="text-red-600 hover:text-red-700 text-xs">Delete</button>
+            <ShareFDPButton fdp={f} size="sm" />
           </td></tr>
         ))}</tbody></table></div>
       )}

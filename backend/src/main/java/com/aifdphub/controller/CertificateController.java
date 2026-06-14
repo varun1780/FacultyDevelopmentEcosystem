@@ -50,12 +50,14 @@ public class CertificateController {
 
         Certificate cert = certificateService.generateCertificate(userOpt.get(), fdpOpt.get(), enrollOpt.get());
 
+        Long collegeId = fdpOpt.get().getCollege() != null ? fdpOpt.get().getCollege().getId() : null;
         notificationService.createNotification(
             "Certificate Issued",
             "Certificate issued for " + userOpt.get().getName() + " in " + fdpOpt.get().getTitle(),
             "CERTIFICATE",
             "ADMIN",
-            null
+            null,
+            collegeId
         );
 
         notificationService.createNotification(
@@ -108,12 +110,14 @@ public class CertificateController {
         // Generate certificate
         Certificate cert = certificateService.generateCertificate(userOpt.get(), fdp, enrollment);
 
+        Long collegeId = fdp.getCollege() != null ? fdp.getCollege().getId() : null;
         notificationService.createNotification(
             "Certificate Generated",
             "Certificate generated for " + userOpt.get().getName() + " in " + fdp.getTitle(),
             "CERTIFICATE",
             "ADMIN",
-            null
+            null,
+            collegeId
         );
 
         notificationService.createNotification(
@@ -146,7 +150,14 @@ public class CertificateController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<?> getMyCertificates(@RequestParam Long userId) {
-        return ResponseEntity.ok(certificateService.getUserCertificates(userId));
+    public ResponseEntity<?> getMyCertificates(@RequestParam Long userId, org.springframework.security.core.Authentication auth) {
+        Long collegeId = null;
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User authUser = (User) auth.getPrincipal();
+            if ("ADMIN".equals(authUser.getRole()) && authUser.getCollege() != null) {
+                collegeId = authUser.getCollege().getId();
+            }
+        }
+        return ResponseEntity.ok(certificateService.getUserCertificates(userId, collegeId));
     }
 }

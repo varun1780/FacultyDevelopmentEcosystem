@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { adminReportsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -16,6 +17,9 @@ import {
 } from 'lucide-react';
 
 export default function AdminReportsPage() {
+  const { user } = useAuth();
+  const collegeName = user?.college?.collegeName || user?.college?.collegeCode || 'Institution';
+
   const [summary, setSummary] = useState(null);
   const [fdpReport, setFdpReport] = useState([]);
   const [facultyReport, setFacultyReport] = useState([]);
@@ -125,7 +129,7 @@ export default function AdminReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Reports</h1>
+          <h1 className="page-title">{collegeName} Reports</h1>
           <p className="text-gray-500 mt-1">Comprehensive platform analytics from database</p>
         </div>
         <button onClick={() => loadData(true)} disabled={refreshing}

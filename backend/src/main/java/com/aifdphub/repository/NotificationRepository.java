@@ -11,11 +11,11 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    @Query("SELECT n FROM Notification n WHERE n.userId = :userId OR (n.role = :role AND n.userId IS NULL) ORDER BY n.createdAt DESC")
-    List<Notification> findForUser(@Param("userId") Long userId, @Param("role") String role);
+    @Query("SELECT n FROM Notification n WHERE n.userId = :userId OR (n.role = :role AND n.collegeId = :collegeId AND n.userId IS NULL) ORDER BY n.createdAt DESC")
+    List<Notification> findForUser(@Param("userId") Long userId, @Param("role") String role, @Param("collegeId") Long collegeId);
 
-    @Query("SELECT n FROM Notification n WHERE (n.userId = :userId OR (n.role = :role AND n.userId IS NULL)) AND n.isRead = :isRead ORDER BY n.createdAt DESC")
-    List<Notification> findForUserAndStatus(@Param("userId") Long userId, @Param("role") String role, @Param("isRead") Boolean isRead);
+    @Query("SELECT n FROM Notification n WHERE (n.userId = :userId OR (n.role = :role AND n.collegeId = :collegeId AND n.userId IS NULL)) AND n.isRead = :isRead ORDER BY n.createdAt DESC")
+    List<Notification> findForUserAndStatus(@Param("userId") Long userId, @Param("role") String role, @Param("collegeId") Long collegeId, @Param("isRead") Boolean isRead);
 
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Modifying

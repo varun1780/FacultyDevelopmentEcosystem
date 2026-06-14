@@ -18,17 +18,41 @@ import java.util.UUID;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UploadController {
 
-    private static final String UPLOAD_DIR = "uploads/videos/";
+    private static final String VIDEO_UPLOAD_DIR = "uploads/videos/";
+    private static final String PDF_UPLOAD_DIR = "uploads/pdfs/";
 
     @PostMapping("/upload/video")
     public ResponseEntity<?> uploadVideo(@RequestParam("file") MultipartFile file) {
+        return handleUpload(file, VIDEO_UPLOAD_DIR, "videoUrl");
+    }
+
+    @PostMapping("/upload/pdf")
+    public ResponseEntity<?> uploadPdf(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File is empty", "success", false));
+        }
+
+        // Validate file type
+        String contentType = file.getContentType();
+        String originalName = file.getOriginalFilename();
+        if (contentType == null || (!contentType.equals("application/pdf")
+                && !contentType.equals("application/vnd.ms-powerpoint")
+                && !contentType.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+                && !contentType.startsWith("application/"))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only PDF and presentation files are allowed", "success", false));
+        }
+
+        return handleUpload(file, PDF_UPLOAD_DIR, "fileUrl");
+    }
+
+    private ResponseEntity<?> handleUpload(MultipartFile file, String uploadDir, String urlKey) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty", "success", false));
         }
 
         try {
             // Create uploads directory if it doesn't exist
-            File directory = new File(UPLOAD_DIR);
+            File directory = new File(uploadDir);
             if (!directory.exists()) {
                 directory.mkdirs();
             }
@@ -41,19 +65,19 @@ public class UploadController {
             }
 
             String newFileName = UUID.randomUUID().toString() + fileExtension;
-            Path path = Paths.get(UPLOAD_DIR + newFileName);
+            Path path = Paths.get(uploadDir + newFileName);
 
             // Copy file to target location
             Files.copy(file.getInputStream(), path);
 
             // Construct the access URL
-            String videoUrl = "http://localhost:8080/uploads/videos/" + newFileName;
-            String uploadedFilePath = UPLOAD_DIR + newFileName;
+            String fileUrl = "http://localhost:8080/" + uploadDir + newFileName;
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("videoUrl", videoUrl);
-            response.put("uploadedFilePath", uploadedFilePath);
+            response.put(urlKey, fileUrl);
+            response.put("fileName", originalFileName);
+            response.put("uploadedFilePath", uploadDir + newFileName);
 
             return ResponseEntity.ok(response);
         } catch (IOException e) {

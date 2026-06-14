@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { adminUsersAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { HiSearch, HiUserGroup, HiExclamationCircle } from 'react-icons/hi';
 
 export default function AdminUsersPage() {
+  const { user } = useAuth();
+  const collegeName = user?.college?.collegeName || user?.college?.collegeCode || 'Institution';
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,10 +79,13 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="page-title flex items-center gap-2">
-          <HiUserGroup className="text-primary-500" /> Manage Users
-          <span className="text-sm font-normal text-gray-400 ml-2">({users.length} total)</span>
-        </h1>
+        <div>
+          <h1 className="page-title flex items-center gap-2">
+            <HiUserGroup className="text-primary-500" /> {collegeName} Users
+            <span className="text-sm font-normal text-gray-400 ml-2">({users.length} total)</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Manage administrators and faculty within your institution</p>
+        </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -118,7 +124,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50/80 border-b border-gray-100">
                 <tr>
-                  {['Name', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map(h =>
+                  {['Name', 'Email', 'Role', 'Stats', 'Status', 'Joined', 'Actions'].map(h =>
                     <th key={h} className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                   )}
                 </tr>
@@ -142,6 +148,16 @@ export default function AdminUsersPage() {
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                         {u.role}
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {u.role === 'FACULTY' ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-gray-600"><strong>{u.fdpCount || 0}</strong> FDPs</span>
+                          <span className="text-xs text-emerald-600"><strong>{u.certificateCount || 0}</strong> Certs</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${(!u.status || u.status === 'ACTIVE') ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>

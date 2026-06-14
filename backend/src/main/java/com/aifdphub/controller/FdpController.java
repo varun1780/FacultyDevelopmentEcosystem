@@ -14,6 +14,8 @@ import com.aifdphub.service.AIService;
 import com.aifdphub.service.NotificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -56,9 +58,23 @@ public class FdpController {
         this.quizResultRepository = quizResultRepository;
     }
 
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            return (User) auth.getPrincipal();
+        }
+        return null;
+    }
+
     @PostMapping("/fdp/create")
     public ResponseEntity<?> createFdp(@Valid @RequestBody FdpProgram fdpProgram) {
         try {
+            User currentUser = getCurrentUser();
+            if (currentUser != null && "ADMIN".equals(currentUser.getRole())) {
+                fdpProgram.setCreatedBy(currentUser.getId());
+                fdpProgram.setCollege(currentUser.getCollege());
+            }
+
             if ("ai".equalsIgnoreCase(fdpProgram.getMode())) {
                 String topic = fdpProgram.getTitle();
                 if (topic == null || topic.isBlank()) {
@@ -117,23 +133,27 @@ public class FdpController {
                 }
                 
                 FdpProgram savedFdp = fdpRepository.save(fdpProgram);
+                Long collegeId = savedFdp.getCollege() != null ? savedFdp.getCollege().getId() : null;
                 notificationService.createNotification(
                     "AI Content Generated",
                     "AI Content generated and saved: " + savedFdp.getTitle(),
                     "SYSTEM",
                     "ADMIN",
-                    null
+                    null,
+                    collegeId
                 );
                 return ResponseEntity.ok(savedFdp);
             } else {
                 // Manual mode
                 FdpProgram savedFdp = fdpRepository.save(fdpProgram);
+                Long collegeId = savedFdp.getCollege() != null ? savedFdp.getCollege().getId() : null;
                 notificationService.createNotification(
                     "New FDP Available",
                     "New FDP available: " + savedFdp.getTitle(),
                     "SYSTEM",
                     "FACULTY",
-                    null
+                    null,
+                    collegeId
                 );
                 return ResponseEntity.ok(savedFdp);
             }
@@ -143,12 +163,44 @@ public class FdpController {
         }
     }
 
-    @GetMapping("/fdp/all")
-    public ResponseEntity<List<FdpProgram>> getAllFdps() {
-        return ResponseEntity.ok(fdpRepository.findAll());
+    @GetMapping({"/fdp/all", "/fdps"})
+    public ResponseEntity<List<FdpProgram>> getAllFdps(
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) String category) {
+        
+        User currentUser = getCurrentUser();
+        List<FdpProgram> fdps;
+
+        // If an Admin is requesting FDPs (e.g. for their dashboard), force filter to their college
+        if (currentUser != null && "ADMIN".equals(currentUser.getRole()) && currentUser.getCollege() != null) {
+            fdps = fdpRepository.findByCollegeId(currentUser.getCollege().getId());
+            if (category != null) {
+                fdps = fdps.stream().filter(f -> category.equalsIgnoreCase(f.getCategory())).toList();
+            }
+            return ResponseEntity.ok(fdps);
+        }
+
+        // Faculty logic: they can see all colleges or filter by a specific college
+        if (collegeId != null && category != null) {
+            fdps = fdpRepository.findByCollegeId(collegeId).stream()
+                   .filter(f -> category.equalsIgnoreCase(f.getCategory()))
+                   .toList();
+        } else if (collegeId != null) {
+            fdps = fdpRepository.findByCollegeId(collegeId);
+        } else if (category != null) {
+            fdps = fdpRepository.findByCategory(category);
+        } else {
+            fdps = fdpRepository.findAll();
+        }
+        return ResponseEntity.ok(fdps);
     }
 
-    @GetMapping("/fdp/{id}")
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(fdpRepository.findDistinctCategories());
+    }
+
+    @GetMapping({"/fdp/{id}", "/fdps/{id}"})
     public ResponseEntity<?> getFdpById(@PathVariable Long id) {
         Optional<FdpProgram> fdp = fdpRepository.findById(id);
         if (fdp.isPresent()) {
@@ -163,6 +215,14 @@ public class FdpController {
         if (optionalFdp.isPresent()) {
             FdpProgram fdp = optionalFdp.get();
             
+            User currentUser = getCurrentUser();
+            if (currentUser != null && "ADMIN".equals(currentUser.getRole())) {
+                if (fdp.getCollege() == null || currentUser.getCollege() == null || 
+                    !fdp.getCollege().getId().equals(currentUser.getCollege().getId())) {
+                    return ResponseEntity.status(403).body(Map.of("message", "Unauthorized access. FDP belongs to another institution."));
+                }
+            }
+
             String oldModules = fdp.getModules();
             String oldQuiz = fdp.getQuiz();
 
@@ -208,6 +268,15 @@ public class FdpController {
             Optional<FdpProgram> optionalFdp = fdpRepository.findById(id);
             if (optionalFdp.isPresent()) {
                 FdpProgram fdp = optionalFdp.get();
+
+                User currentUser = getCurrentUser();
+                if (currentUser != null && "ADMIN".equals(currentUser.getRole())) {
+                    if (fdp.getCollege() == null || currentUser.getCollege() == null || 
+                        !fdp.getCollege().getId().equals(currentUser.getCollege().getId())) {
+                        return ResponseEntity.status(403).body(Map.of("message", "Unauthorized access. FDP belongs to another institution."));
+                    }
+                }
+
                 String fdpTitle = fdp.getTitle();
                 
                 // 1. Quiz Results
@@ -444,7 +513,7 @@ public class FdpController {
         if (fdpOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         FdpProgram fdp = fdpOpt.get();
-        Map<String, Object> quiz = aiService.generateQuiz(fdp.getTitle(), count);
+        Map<String, Object> quiz = aiService.generateContextualQuiz(fdp, count);
 
         // Store quiz in FDP
         try {
@@ -452,12 +521,14 @@ public class FdpController {
             fdp.setQuiz(mapper.writeValueAsString(quiz));
             fdpRepository.save(fdp);
 
+            Long collegeId = fdp.getCollege() != null ? fdp.getCollege().getId() : null;
             notificationService.createNotification(
                 "Quiz Available",
                 "Quiz unlocked/available for FDP: " + fdp.getTitle(),
                 "QUIZ",
                 "FACULTY",
-                null
+                null,
+                collegeId
             );
         } catch (Exception e) {
             // Log but don't fail
@@ -469,6 +540,7 @@ public class FdpController {
     }
 
     private void triggerUpdateNotifications(String oldModulesJson, String oldQuizJson, FdpProgram newFdp) {
+        Long collegeId = newFdp.getCollege() != null ? newFdp.getCollege().getId() : null;
         int oldModCount = getModuleCount(oldModulesJson);
         int newModCount = getModuleCount(newFdp.getModules());
         if (newModCount > oldModCount) {
@@ -477,7 +549,8 @@ public class FdpController {
                 "New module added to " + newFdp.getTitle(),
                 "SYSTEM",
                 "FACULTY",
-                null
+                null,
+                collegeId
             );
         }
 
@@ -489,7 +562,8 @@ public class FdpController {
                 "New video lecture added to " + newFdp.getTitle(),
                 "SYSTEM",
                 "FACULTY",
-                null
+                null,
+                collegeId
             );
         }
 
@@ -501,7 +575,8 @@ public class FdpController {
                 "Quiz unlocked/available for FDP: " + newFdp.getTitle(),
                 "QUIZ",
                 "FACULTY",
-                null
+                null,
+                collegeId
             );
         }
     }

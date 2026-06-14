@@ -36,14 +36,21 @@ public class AdminReportsController {
     public ResponseEntity<?> getSummary(Authentication auth) {
         if (!isAdmin(auth)) return ResponseEntity.status(403).build();
 
-        Map<String, Object> summary = new HashMap<>();
-        long totalFdps = fdpRepository.count();
-        long totalFaculty = userRepository.countByRole("FACULTY");
-        long totalEnrollments = enrollmentRepository.count();
-        long completedEnrollments = enrollmentRepository.countByIsCompleted(true);
-        long totalCertificates = certificateRepository.count();
+        User admin = (User) auth.getPrincipal();
+        Long collegeId = admin.getCollege() != null ? admin.getCollege().getId() : null;
+        if (collegeId == null) return ResponseEntity.status(403).build();
 
-        double avgScore = enrollmentRepository.findAll().stream()
+        Map<String, Object> summary = new HashMap<>();
+        long totalFdps = fdpRepository.countByCollegeId(collegeId);
+        
+        List<Enrollment> collegeEnrollments = enrollmentRepository.findByFdpProgramCollegeId(collegeId);
+        long totalFaculty = collegeEnrollments.stream().map(e -> e.getUser().getId()).distinct().count();
+        
+        long totalEnrollments = enrollmentRepository.countByFdpProgramCollegeId(collegeId);
+        long completedEnrollments = enrollmentRepository.countByFdpProgramCollegeIdAndIsCompleted(collegeId, true);
+        long totalCertificates = certificateRepository.countByFdpProgramCollegeId(collegeId);
+
+        double avgScore = collegeEnrollments.stream()
                 .filter(e -> e.getQuizScore() != null && e.getQuizScore() > 0)
                 .mapToDouble(Enrollment::getQuizScore)
                 .average().orElse(0.0);
@@ -64,8 +71,12 @@ public class AdminReportsController {
     public ResponseEntity<?> getFdpEnrollments(Authentication auth) {
         if (!isAdmin(auth)) return ResponseEntity.status(403).build();
 
-        List<FdpProgram> fdps = fdpRepository.findAll();
-        List<Enrollment> allEnrollments = enrollmentRepository.findAll();
+        User admin = (User) auth.getPrincipal();
+        Long collegeId = admin.getCollege() != null ? admin.getCollege().getId() : null;
+        if (collegeId == null) return ResponseEntity.status(403).build();
+
+        List<FdpProgram> fdps = fdpRepository.findByCollegeId(collegeId);
+        List<Enrollment> allEnrollments = enrollmentRepository.findByFdpProgramCollegeId(collegeId);
 
         List<Map<String, Object>> report = fdps.stream().map(fdp -> {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -104,9 +115,13 @@ public class AdminReportsController {
     public ResponseEntity<?> getFacultyPerformance(Authentication auth) {
         if (!isAdmin(auth)) return ResponseEntity.status(403).build();
 
-        List<User> faculty = userRepository.findByRole("FACULTY");
-        List<Enrollment> allEnrollments = enrollmentRepository.findAll();
-        List<Certificate> allCerts = certificateRepository.findAll();
+        User admin = (User) auth.getPrincipal();
+        Long collegeId = admin.getCollege() != null ? admin.getCollege().getId() : null;
+        if (collegeId == null) return ResponseEntity.status(403).build();
+
+        List<Enrollment> allEnrollments = enrollmentRepository.findByFdpProgramCollegeId(collegeId);
+        List<User> faculty = allEnrollments.stream().map(Enrollment::getUser).distinct().collect(Collectors.toList());
+        List<Certificate> allCerts = certificateRepository.findByFdpProgramCollegeId(collegeId);
 
         List<Map<String, Object>> report = faculty.stream().map(f -> {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -148,7 +163,11 @@ public class AdminReportsController {
     public ResponseEntity<?> getCertificates(Authentication auth) {
         if (!isAdmin(auth)) return ResponseEntity.status(403).build();
 
-        List<Certificate> certs = certificateRepository.findAll();
+        User admin = (User) auth.getPrincipal();
+        Long collegeId = admin.getCollege() != null ? admin.getCollege().getId() : null;
+        if (collegeId == null) return ResponseEntity.status(403).build();
+
+        List<Certificate> certs = certificateRepository.findByFdpProgramCollegeId(collegeId);
 
         List<Map<String, Object>> report = certs.stream().map(c -> {
             Map<String, Object> row = new LinkedHashMap<>();

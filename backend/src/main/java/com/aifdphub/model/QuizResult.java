@@ -21,6 +21,9 @@ public class QuizResult {
     @Column(name = "fdp_id", nullable = false)
     private Long fdpId;
 
+    @Column(name = "college_id")
+    private Long collegeId;
+
     @Column(columnDefinition = "TEXT")
     private String answers;
 

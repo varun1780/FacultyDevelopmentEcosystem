@@ -12,4 +12,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     List<User> findByRole(String role);
     long countByRole(String role);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.college.id = :collegeId")
+    List<User> findByCollegeId(@org.springframework.data.repository.query.Param("collegeId") Long collegeId);
 }

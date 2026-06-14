@@ -24,6 +24,13 @@ public class FdpProgram {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "college_id")
+    private College college;
+
     private String category;
     private String duration;
     private String difficultyLevel;

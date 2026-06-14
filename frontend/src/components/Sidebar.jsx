@@ -73,7 +73,14 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
             <div className="min-w-0">
               <p className="text-white text-sm font-medium truncate">{user?.name || 'User'}</p>
-              <p className="text-gray-400 text-xs truncate">{user?.role === 'ADMIN' ? 'Administrator' : user?.designation || 'Faculty'}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">{user?.role === 'ADMIN' ? 'Admin' : user?.designation || 'Faculty'}</span>
+                {user?.college && (
+                  <span className="bg-primary-500/20 text-primary-300 text-[10px] px-1.5 py-0.5 rounded border border-primary-500/30 truncate max-w-[100px]">
+                    {user.college.collegeCode || user.college.collegeName}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

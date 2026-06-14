@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { notificationAPI } from '../services/api';
-import { HiOutlineMenuAlt2, HiOutlineBell, HiOutlineSearch, HiCheck } from 'react-icons/hi';
+import { HiOutlineMenuAlt2, HiOutlineBell, HiOutlineSearch, HiCheck, HiOutlineX, HiOutlineTrash } from 'react-icons/hi';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function Navbar({ onMenuToggle }) {
@@ -14,7 +14,16 @@ export default function Navbar({ onMenuToggle }) {
     if (!user) return;
     try {
       const res = await notificationAPI.getAll();
-      setNotifications(res.data);
+      
+      // Filter out duplicate notifications with the exact same message
+      const uniqueMessages = new Set();
+      const filteredNotifications = res.data.filter(notif => {
+        if (uniqueMessages.has(notif.message)) return false;
+        uniqueMessages.add(notif.message);
+        return true;
+      });
+
+      setNotifications(filteredNotifications);
     } catch (err) {
       console.error('Failed to fetch notifications', err);
     }
@@ -58,6 +67,25 @@ export default function Navbar({ onMenuToggle }) {
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      await notificationAPI.deleteAll();
+      setNotifications([]);
+    } catch (err) {
+      console.error('Failed to clear notifications', err);
+    }
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation(); // prevent clicking the notification body
+    try {
+      await notificationAPI.delete(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error('Failed to delete notification', err);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-gray-100">
       <div className="flex items-center justify-between px-4 lg:px-8 py-3">
@@ -86,23 +114,38 @@ export default function Navbar({ onMenuToggle }) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                   <h3 className="font-semibold text-gray-800">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                    >
-                      <HiCheck /> Mark all as read
-                    </button>
-                  )}
+                  <div className="flex gap-3">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                        title="Mark all as read"
+                      >
+                        <HiCheck className="text-sm" /> Read All
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={handleClearAll}
+                        className="text-xs font-medium text-red-500 hover:text-red-700 flex items-center gap-1"
+                        title="Clear all notifications"
+                      >
+                        <HiOutlineTrash className="text-sm" /> Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-[400px] overflow-y-auto scroll-smooth custom-scrollbar">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-gray-400">
-                      <HiOutlineBell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No new notifications</p>
+                    <div className="p-8 text-center text-gray-400">
+                      <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <HiOutlineBell className="w-6 h-6 text-gray-300" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-500">No new notifications</p>
+                      <p className="text-xs mt-1">You're all caught up!</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-50">
@@ -110,16 +153,16 @@ export default function Navbar({ onMenuToggle }) {
                         <div
                           key={notif.id}
                           onClick={() => !notif.isRead && handleMarkAsRead(notif.id)}
-                          className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer group relative ${
                             !notif.isRead ? 'bg-primary-50/30' : ''
                           }`}
                         >
-                          <div className="flex gap-3">
+                          <div className="flex gap-3 pr-6">
                             <div className="flex-1">
-                              <p className={`text-sm ${!notif.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                              <p className={`text-sm pr-2 ${!notif.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
                                 {notif.title}
                               </p>
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                                 {notif.message}
                               </p>
                               <p className="text-[10px] text-gray-400 mt-2 font-medium">
@@ -127,9 +170,16 @@ export default function Navbar({ onMenuToggle }) {
                               </p>
                             </div>
                             {!notif.isRead && (
-                              <div className="w-2 h-2 bg-primary-500 rounded-full mt-1.5 flex-shrink-0" />
+                              <div className="w-2 h-2 bg-primary-500 rounded-full mt-1.5 flex-shrink-0 shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
                             )}
                           </div>
+                          <button 
+                            onClick={(e) => handleDelete(e, notif.id)}
+                            className="absolute top-4 right-3 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete notification"
+                          >
+                            <HiOutlineX className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                     </div>

@@ -27,6 +27,9 @@ public class Notification {
     @Column(name = "user_id")
     private Long userId; // specific target user, or null if broadcast to role
 
+    @Column(name = "college_id")
+    private Long collegeId;
+
     private Boolean isRead = false;
 
     @Column(name = "created_at", updatable = false)
